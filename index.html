@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>人生追尋 · 畢士大版 · Live Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pool:#0B1F2A;--pool2:#0E2A38;--water:#1F7A8C;--water2:#2EC4B6;
+  --clay:#B5643C;--clay-hi:#D89A6A;--clay-lo:#7E4327;--gold:#E0A542;--gold-hi:#F4CE7A;
+  --silver:#C9D3DA;--bronze:#C98B5E;
+  --ink:#F2EAD9;--muted:#8FA7B0;--line:rgba(242,234,217,.14);
+  --g:#3FA34D;--r:#D64545;--p:#8E6FBF;--y:#E8C34A;--b:#3B7DD8;
+  --serif:"Cormorant Garamond","Noto Serif TC",serif;--cjk:"Noto Serif TC","Songti TC",serif;--ui:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:var(--ui);color:var(--ink);min-height:100%;
+  background:radial-gradient(1500px 750px at 70% -10%,#12384a,transparent 60%),linear-gradient(180deg,var(--pool),var(--pool2) 62%,#0a2531)}
+.pool-fx{position:fixed;inset:auto 0 0 0;height:36vh;pointer-events:none;z-index:0;overflow:hidden;opacity:.5}
+.pool-fx span{position:absolute;left:-20%;right:-20%;height:70px;border-radius:50%;
+  background:radial-gradient(50% 100% at 50% 0%,rgba(46,196,182,.30),transparent 70%);animation:drift 10s ease-in-out infinite}
+.pool-fx span:nth-child(2){bottom:18%;opacity:.6;animation-duration:8s;animation-direction:reverse}
+.pool-fx span:nth-child(3){bottom:30%;opacity:.4;animation-duration:13s}
+@keyframes drift{0%,100%{transform:translateX(-4%) scaleY(1)}50%{transform:translateX(4%) scaleY(1.25)}}
+.wrap{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:20px 22px 70px}
+header{text-align:center;padding:4px 0}
+.greek{font-family:var(--serif);font-style:italic;font-size:clamp(15px,2vw,20px);color:var(--water2);opacity:.9}
+h1{font-family:var(--cjk);font-size:clamp(24px,4vw,40px);letter-spacing:.14em;margin:.1em 0 .02em}
+.ripple{height:1px;margin:12px auto 4px;max-width:560px;background:linear-gradient(90deg,transparent,var(--water),transparent)}
+.status{text-align:center;font-size:12px;color:var(--muted);letter-spacing:.06em;margin:4px 0 12px;min-height:14px}
+.status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--water2)}
+.status.err .dot{background:var(--r)}
+
+/* ── 頒獎台 ── */
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:26px;margin:14px 0 8px;min-height:330px}
+.pd{display:flex;flex-direction:column;align-items:center;animation:rise .6s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.pd .medal{font-size:30px;line-height:1;margin-bottom:2px}
+.pd .name{font-family:var(--cjk);font-weight:600;text-align:center;line-height:1.15;
+  text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.pd .cnt{font-family:var(--serif);font-weight:600;color:var(--gold-hi)}
+.pd .enc{font-size:12.5px;color:var(--muted);max-width:220px;text-align:center;line-height:1.55;margin-top:6px;font-family:var(--cjk)}
+.pd .plinth{margin-top:10px;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;
+  font-family:var(--serif);font-size:26px;font-weight:600;color:rgba(4,23,30,.85);padding-top:8px;
+  box-shadow:0 -6px 24px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.35)}
+.pd1 .name{font-size:clamp(26px,3.4vw,40px)} .pd1 .cnt{font-size:26px}
+.pd2 .name,.pd3 .name{font-size:clamp(20px,2.6vw,30px)} .pd2 .cnt,.pd3 .cnt{font-size:20px}
+.pd1 .plinth{width:190px;height:150px;background:linear-gradient(180deg,var(--gold-hi),var(--gold))}
+.pd2 .plinth{width:170px;height:104px;background:linear-gradient(180deg,#e6edf2,var(--silver))}
+.pd3 .plinth{width:170px;height:76px;background:linear-gradient(180deg,#dda87e,var(--bronze))}
+.pd .halo{position:relative}
+.pd1 .halo::before{content:"";position:absolute;inset:-26px -40px;z-index:-1;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(244,206,122,.28),transparent 70%);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+
+/* ── 瓦器 ── */
+.jar{position:relative;width:74px;height:92px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.45));margin-top:4px}
+.jar.big{width:96px;height:118px}
+.jar .neck{position:absolute;top:0;left:50%;transform:translateX(-50%);width:38%;height:14%;
+  background:linear-gradient(180deg,var(--clay-hi),var(--clay));border-radius:6px 6px 3px 3px;border:1px solid var(--clay-lo)}
+.jar .body{position:absolute;bottom:0;left:0;right:0;height:85%;overflow:hidden;
+  background:linear-gradient(180deg,var(--clay),var(--clay-lo));border:1px solid var(--clay-lo);
+  border-radius:16px 16px 42px 42px/12px 12px 62px 62px}
+.jar .body::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,rgba(255,255,255,.16),transparent 45%)}
+.fill{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column-reverse;transition:height .6s ease}
+.seg{width:100%;transition:height .6s ease}
+.seg.g{background:var(--g)}.seg.r{background:var(--r)}.seg.p{background:var(--p)}.seg.y{background:var(--y)}.seg.b{background:var(--b)}
+.coins{position:absolute;top:-9px;left:50%;transform:translateX(-50%);display:flex;gap:2px;z-index:3}
+.coin{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-hi),var(--gold));border:1px solid #a9781f;box-shadow:0 0 6px rgba(240,206,122,.6)}
+
+/* ── 其他玩家 ── */
+.pool-edge{height:2px;background:linear-gradient(90deg,transparent,var(--water2),transparent);margin:20px 0 18px;opacity:.7}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:20px 14px;align-items:end}
+.card{display:flex;flex-direction:column;align-items:center;animation:rise .5s ease both}
+.card .rk{font-family:var(--serif);font-size:14px;color:var(--muted)}
+.card .nm{font-family:var(--cjk);font-weight:600;font-size:clamp(19px,2vw,24px);text-align:center;line-height:1.15;margin-top:2px}
+.card .ct{font-family:var(--serif);font-size:17px;color:var(--ink)}
+.card .en{font-size:11.5px;color:var(--muted);text-align:center;max-width:170px;line-height:1.5;margin-top:4px;font-family:var(--cjk)}
+.legend{display:flex;gap:15px;justify-content:center;flex-wrap:wrap;margin:24px 0 4px;color:var(--muted);font-size:12px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.empty{text-align:center;color:var(--muted);font-family:var(--cjk);padding:60px 0;font-size:16px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="pool-fx"><span></span><span></span><span></span></div>
+<div class="wrap">
+  <header>
+    <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
+    <h1>人生追尋 · 畢士大版</h1>
+    <div class="ripple"></div>
+    <div class="status" id="status"><span class="dot"></span>連線中…</div>
+  </header>
+  <div class="podium" id="podium"></div>
+  <div class="pool-edge"></div>
+  <div class="grid" id="grid"><div class="empty">等緊池邊嘅人……</div></div>
+  <div class="legend">
+    <span><i style="background:var(--g)"></i>🟢</span><span><i style="background:var(--r)"></i>🔴</span>
+    <span><i style="background:var(--p)"></i>🟣</span><span><i style="background:var(--y)"></i>🟡</span>
+    <span><i style="background:var(--b)"></i>🔵</span><span><i style="background:var(--gold)"></i>🥇</span>
+  </div>
+</div>
+<script>
+// ── ✏️ 只此一行：你嘅 Lambda Function URL（唔使加 /board）─────
+const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
+// ────────────────────────────────────────────────────────
+const COLORS=[['green','g'],['red','r'],['purple','p'],['yellow','y'],['blue','b']];
+const $=id=>document.getElementById(id);
+const count=t=>COLORS.reduce((s,[k])=>s+(t?.[k]||0),0);
+
+// 鼓勵／冇惡意串串貢（畢士大味，唔 leak 加權）
+const ENC={
+  p1:['全場最矚目——池邊個個都望住你。','行得最前嗰個。下一round，快得過你自己嗎？','霸住池口！不過記住：水動嗰下，先係關鍵。'],
+  p2:['一步之遙。今次差少少，下次咪唔好差囉。','銀色都好靚——但你唔係為銀色嚟嘅。Play smart.','貼住第一。等佢行差踏錯，定係自己行快啲？'],
+  p3:['企上台喇！上面仲有兩個位，睇你點爬。','季軍係最有故事嘅位——通常都唔甘心。','入三甲！下一round，攞埋佢哋嗰啲。'],
+  hi:['有形有勢，繼續儲！','穩陣。但穩陣入唔到三甲——諗計。','就差一步爆上頒獎台。邊個站最抵去？','你儲緊嘢。問題係：儲啱咗未？'],
+  lo:['池邊等咗三十八年嗰位都冇放棄。你先第幾round啫。','慢熱啫。下一round先係你嘅round。','代幣少，包袱都少。轉身快過晒佢哋。','唔好淨係鬥快——鬥聰明。下round睇你。','人少嘅地方，先執到寶。諗下邊度冇人去。'],
+};
+const pickEnc=(pool,id,total)=>{let h=total;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return pool[h%pool.length];};
+
+function jar(p,maxTotal,big){
+  const total=count(p.tokens),bodyH=big?100:78,fillH=total>0?Math.max(10,Math.min(bodyH,(total/maxTotal)*bodyH)):0;
+  const segs=COLORS.map(([k,c])=>{const n=p.tokens?.[k]||0;return n&&total?`<div class="seg ${c}" style="height:${(n/total)*fillH}px"></div>`:'';}).join('');
+  const coins=Array.from({length:Math.min(p.gold||0,6)}).map(()=>'<span class="coin"></span>').join('');
+  return `<div class="jar${big?' big':''}">${coins?`<div class="coins">${coins}</div>`:''}<div class="neck"></div><div class="body"><div class="fill" style="height:${fillH}px">${segs}</div></div></div>`;
+}
+function render(list){
+  const ranked=[...list].sort((a,b)=>count(b.tokens)-count(a.tokens));
+  const maxTotal=Math.max(10,...ranked.map(p=>count(p.tokens)));
+  // 頒獎台：視覺次序 2-1-3
+  const [g1,g2,g3]=[ranked[0],ranked[1],ranked[2]];
+  const pd=(p,cls,medal,encPool)=>!p?'':`
+    <div class="pd ${cls}">
+      <div class="halo">
+        <div class="medal" style="text-align:center">${medal}</div>
+        <div class="name">${p.name||p.id}</div>
+        <div class="cnt" style="text-align:center">${count(p.tokens)} 代幣${p.gold?` · 🥇${p.gold}`:''}</div>
+        <div style="display:flex;justify-content:center">${jar(p,maxTotal,cls==='pd1')}</div>
+        <div class="enc">${pickEnc(encPool,p.id,count(p.tokens))}</div>
+      </div>
+      <div class="plinth">${cls==='pd1'?'1':cls==='pd2'?'2':'3'}</div>
+    </div>`;
+  $('podium').innerHTML = pd(g2,'pd2','🥈',ENC.p2)+pd(g1,'pd1','🥇',ENC.p1)+pd(g3,'pd3','🥉',ENC.p3);
+  const rest=ranked.slice(3);
+  const half=Math.ceil(ranked.length/2);
+  $('grid').innerHTML = rest.length? rest.map((p,i)=>{
+    const rank=i+4, pool=rank<=half?ENC.hi:ENC.lo;
+    return `<div class="card">
+      <div class="rk">#${rank}</div>
+      <div class="nm">${p.name||p.id}</div>
+      <div class="ct">${count(p.tokens)} 代幣${p.gold?` · 🥇${p.gold}`:''}</div>
+      ${jar(p,maxTotal,false)}
+      <div class="en">${pickEnc(pool,p.id,count(p.tokens))}</div>
+    </div>`;}).join('') : (ranked.length? '' : '<div class="empty">未有人綁定入場。池邊仲係靜嘅。</div>');
+}
+let lastOk=0;
+async function poll(){
+  try{
+    const r=await fetch(BASE+'/board',{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    render(Array.isArray(data)?data:[]);
+    lastOk=Date.now();
+    $('status').className='status';
+    $('status').innerHTML=`<span class="dot"></span>LIVE · ${data.length} 位玩家 · ${new Date().toLocaleTimeString('zh-HK')}`;
+  }catch(e){
+    $('status').className='status err';
+    $('status').innerHTML=`<span class="dot"></span>連線唔到（${e.message}）· ${lastOk?'顯示上次資料':'未有資料'} · 重試中`;
+  }
+}
+poll(); setInterval(poll,3000);
+</script>
+</body>
+</html>

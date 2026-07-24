@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>站點 Check-in · 畢士大版</title>
+<style>
+  :root{--bg:#0B1F2A;--card:#12384a;--ink:#F2EAD9;--muted:#8FA7B0;--gold:#F4CE7A;--water:#2EC4B6;--red:#D64545;--line:rgba(242,234,217,.14)}
+  *{box-sizing:border-box}body{margin:0;font-family:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:14px;text-align:center;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:19px;letter-spacing:.1em} header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .cfg{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px}
+  .cfg select,.cfg button{background:#0b2531;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:15px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px;padding-bottom:70px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;user-select:none}
+  .tile:active{transform:scale(.96);background:#16465c}
+  .tile .pid{font-size:13px;color:var(--muted)} .tile .pname{font-size:18px;font-weight:600;margin-top:2px;line-height:1.2}
+  .status{position:fixed;left:0;right:0;bottom:0;background:#08202b;border-top:1px solid var(--line);padding:10px 14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;z-index:5}
+  .queue.on{color:var(--gold)}
+  .modal{position:fixed;inset:0;background:rgba(4,15,20,.85);display:none;align-items:center;justify-content:center;padding:18px;z-index:8}
+  .modal.show{display:flex}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;max-height:86vh;overflow:auto}
+  .box h2{margin:0 0 4px;font-size:21px} .box .sub2{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+  .btns button{flex:1;min-width:76px;border:none;border-radius:11px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;background:#0b2531;color:var(--ink);border:1px solid var(--line)}
+  button.ok{background:linear-gradient(180deg,#8bd6c9,var(--water));color:#04171e;border:none}
+  button.no{background:#7e3a3a;color:#fff;border:none}
+  button.warn{background:linear-gradient(180deg,#f2d68a,var(--gold));color:#3d2b00;border:none}
+  .ghost{background:transparent!important;color:var(--muted)!important;border:none!important;font-weight:400!important}
+  .confirm-line{font-size:16.5px;line-height:1.8;background:#0b2531;border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+  .hist{ text-align:left;font-size:14px }
+  .hist .row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px dashed var(--line);padding:9px 2px}
+  .hist .row.undone{opacity:.45;text-decoration:line-through}
+  .hist .row button{padding:7px 10px;font-size:13px;flex:0 0 auto;border-radius:8px}
+  .toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:var(--water);color:#04171e;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;transition:.25s;font-size:14px;z-index:9;max-width:88vw;text-align:center}
+  .toast.err{background:var(--red);color:#fff}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>站點 Check-in</h1>
+  <div class="sub">玩家一到站，撳自己個名 → 覆核 → 確認</div>
+</header>
+<div class="cfg">
+  <select id="station">
+    <option value="career">📈 事業站</option><option value="relation">💑 關係站</option>
+    <option value="inner">🧘 內在站</option><option value="fun">🎉 享樂站</option><option value="faith">⛪ 信仰站</option>
+  </select>
+  <select id="round"><option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option><option>R6</option></select>
+  <button onclick="loadRoster()">🔄 名單</button>
+  <button onclick="openHist()">📝 本回合紀錄</button>
+</div>
+<div class="grid" id="grid">載入名單中…</div>
+
+<!-- 入分 modal -->
+<div class="modal" id="modal"><div class="box">
+  <h2 id="m-name"></h2><div class="sub2" id="m-ctx"></div>
+  <div id="step-input">
+    <div id="m-coins">
+      <div style="color:var(--muted);font-size:13px;margin-bottom:8px" id="m-coins-label">base 代幣（站長話你知）</div>
+      <div class="btns" id="m-coins-btns"></div>
+    </div>
+    <div id="m-success" style="display:none">
+      <div style="color:var(--muted);font-size:13px;margin:12px 0 8px">任務結果</div>
+      <div class="btns"><button class="ok" onclick="succ(true)">成功</button><button class="no" onclick="succ(false)">失敗</button></div>
+    </div>
+  </div>
+  <div id="step-confirm" style="display:none">
+    <div class="confirm-line" id="c-line"></div>
+    <div style="color:var(--gold);font-size:13.5px">⚠️ 入分前請覆核：人啱唔啱？分啱唔啱？</div>
+    <div class="btns" style="margin-top:12px">
+      <button class="warn" onclick="doSubmit()">✅ 確認入分</button>
+      <button onclick="backToInput()">↩️ 返回改</button>
+    </div>
+  </div>
+  <button class="ghost" style="margin-top:12px;width:100%" onclick="closeModal()">取消</button>
+</div></div>
+
+<!-- 紀錄/取消 modal -->
+<div class="modal" id="hmodal"><div class="box">
+  <h2>📝 本回合紀錄</h2><div class="sub2" id="h-ctx"></div>
+  <div class="hist" id="h-list"></div>
+  <button class="ghost" style="margin-top:12px;width:100%" onclick="$('hmodal').classList.remove('show')">關閉</button>
+</div></div>
+
+<div class="status">
+  <span>站：<b id="s-st"></b>　回合：<b id="s-rd"></b></span>
+  <span class="queue" id="q">待傳 0</span>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── ✏️ 只此一行：你嘅 Lambda Function URL ────────────────
+const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
+// ──────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const stSel=$('station'),rdSel=$('round');
+const stLabel=()=>stSel.options[stSel.selectedIndex].text;
+function syncLabels(){$('s-st').textContent=stLabel();$('s-rd').textContent=rdSel.value;}
+stSel.onchange=rdSel.onchange=syncLabels; syncLabels();
+
+// ── 名單（由 Notion 經 /roster 嚟：號碼排序 + 人名）──
+let ROSTER=[];
+async function loadRoster(){
+  try{
+    const r=await fetch(BASE+'/roster',{cache:'no-store'});
+    ROSTER=await r.json();
+    $('grid').innerHTML=ROSTER.length
+      ? ROSTER.map(p=>`<div class="tile" onclick="openModal('${p.id}')"><div class="pid">${p.id}</div><div class="pname">${p.name}</div></div>`).join('')
+      : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">未有已綁定玩家。玩家撳 deep link 綁定後，撳「🔄 名單」。</div>';
+  }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">名單載入失敗，撳「🔄 名單」重試。</div>';}
+}
+const nameOf=id=>(ROSTER.find(p=>p.id===id)||{}).name||id;
+
+// ── 入分流程：揀分 →（事業站揀成敗）→ 確認畫面 → 送出 ──
+let cur={id:null,coins:0,success:null};
+function openModal(id){
+  cur={id,coins:0,success:null};
+  $('m-name').textContent=`${id} ${nameOf(id)}`;
+  $('m-ctx').textContent=`${rdSel.value} · ${stLabel()}`;
+  const isAuction=stSel.value==='career'&&rdSel.value==='R4';
+  $('m-success').style.display='none';
+  $('m-coins').style.display=stSel.value==='inner'?'none':'block';
+  $('m-coins-btns').innerHTML = isAuction
+    ? '<button onclick="pick(20)">中標 +20</button><button onclick="pick(0)">冇中標 0</button>'
+    : '<button onclick="pick(1)">1</button><button onclick="pick(2)">2</button><button onclick="pick(3)">3</button><button onclick="pick(0)">0</button>';
+  showStep('input');
+  if(stSel.value==='inner'){ toConfirm(); }  // 內在站固定 2，直接去確認
+  $('modal').classList.add('show');
+}
+function showStep(which){
+  $('step-input').style.display = which==='input'?'block':'none';
+  $('step-confirm').style.display = which==='confirm'?'block':'none';
+}
+function pick(n){
+  cur.coins=n;
+  const isAuction=stSel.value==='career'&&rdSel.value==='R4';
+  if(stSel.value==='career'&&!isAuction){ $('m-success').style.display='block'; }
+  else toConfirm();
+}
+function succ(b){cur.success=b; toConfirm();}
+function toConfirm(){
+  const isInner=stSel.value==='inner';
+  const scoreTxt=isInner?'固定 2 代幣':`base ${cur.coins} 代幣${cur.success!==null?(cur.success?' · 任務成功':' · 任務失敗'):''}`;
+  $('c-line').innerHTML=`<b>${cur.id} ${nameOf(cur.id)}</b><br>${rdSel.value} · ${stLabel()}<br>${scoreTxt}`;
+  showStep('confirm');
+}
+function backToInput(){showStep('input');}
+function closeModal(){$('modal').classList.remove('show');}
+
+function doSubmit(){
+  const payload={type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,coins:cur.coins,success:cur.success};
+  enqueue({kind:'checkin',payload}); closeModal(); flush();
+}
+
+// ── 本回合紀錄 + 取消（undo）──
+const HK='bethesda_hist';
+const getH=()=>{try{return JSON.parse(localStorage.getItem(HK)||'[]')}catch{return[]}};
+const setH=h=>localStorage.setItem(HK,JSON.stringify(h));
+function addH(entry){const h=getH();h.push(entry);setH(h);}
+function openHist(){
+  $('h-ctx').textContent=`${rdSel.value} · ${stLabel()}（呢部 iPad 入嘅）`;
+  const h=getH().map((e,i)=>({...e,i})).filter(e=>e.payload.round===rdSel.value);
+  $('h-list').innerHTML=h.length? h.map(e=>`
+    <div class="row ${e.undone?'undone':''}">
+      <span>${e.payload.id} ${nameOf(e.payload.id)}　${e.dispense||('base '+e.payload.coins)}</span>
+      ${e.undone?'<span style="color:var(--muted);font-size:12px">已取消</span>'
+        :(e.solid?`<button class="no" onclick="doUndo(${e.i})">↩️ 取消</button>`
+        :'<span style="color:var(--muted);font-size:12px">待傳/未確認</span>')}
+    </div>`).join('') : '<div style="color:var(--muted);text-align:center;padding:16px">本回合未有紀錄。</div>';
+  $('hmodal').classList.add('show');
+}
+async function doUndo(i){
+  const h=getH(); const e=h[i]; if(!e||e.undone)return;
+  try{
+    const r=await fetch(BASE+'/undo',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'undo',id:e.payload.id,round:e.payload.round,station:e.payload.station,solid:e.solid,deltas:e.deltas})});
+    const res=await r.json();
+    if(res.ok){ e.undone=true; setH(h); toast(`↩️ ${e.payload.id} 已取消，可以重新入`); openHist(); }
+    else toast(res.msg||'取消失敗',true);
+  }catch{ toast('網絡問題，取消失敗，再試',true); }
+}
+
+// ── 離線佇列 + 送出（成功先入 history，帶 server 回傳嘅 solid 供 undo）──
+const QK='bethesda_queue';
+const getQ=()=>{try{return JSON.parse(localStorage.getItem(QK)||'[]')}catch{return[]}};
+const setQ=q=>{localStorage.setItem(QK,JSON.stringify(q));renderQ();};
+function enqueue(p){const q=getQ();q.push(p);setQ(q);}
+function renderQ(){const n=getQ().length;$('q').textContent='待傳 '+n;$('q').classList.toggle('on',n>0);}
+let flushing=false;
+async function flush(){
+  if(flushing)return; flushing=true;
+  let q=getQ();
+  while(q.length){
+    const item=q[0];
+    try{
+      const r=await fetch(BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item.payload)});
+      if(!r.ok)throw 0;
+      const res=await r.json();
+      q.shift(); setQ(q);
+      if(res.ok){ addH({payload:item.payload,solid:res.solid,deltas:res.deltas,dispense:res.dispense,ts:Date.now(),undone:false});
+        toast(`✅ ${item.payload.id} ${res.name||''} 已入分：${res.dispense||'—'}`); }
+      else if(res.locked){ toast(`🔒 ${res.msg}`,true); }
+      else toast(res.msg||'入分失敗',true);
+    }catch{ break; }
+    q=getQ();
+  }
+  flushing=false;
+}
+setInterval(flush,5000); window.addEventListener('online',flush);
+let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
+renderQ(); flush(); loadRoster();
+</script>
+</body>
+</html>
