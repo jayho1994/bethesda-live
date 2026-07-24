@@ -122,7 +122,7 @@ function openModal(id){
   $('m-success').style.display='none';
   $('m-coins').style.display=stSel.value==='inner'?'none':'block';
   $('m-coins-btns').innerHTML = isAuction
-    ? '<button onclick="pick(20)">中標 +20</button><button onclick="pick(0)">冇中標 0</button>'
+    ? '<div style="color:var(--gold);font-size:14px;line-height:1.7">💰 R4 事業站＝暗標競投<br>出價、開標全部喺 Telegram 進行<br>（唔使喺呢度入分）</div>'
     : '<button onclick="pick(1)">1</button><button onclick="pick(2)">2</button><button onclick="pick(3)">3</button><button onclick="pick(0)">0</button>';
   showStep('input');
   if(stSel.value==='inner'){ toConfirm(); }  // 內在站固定 2，直接去確認
