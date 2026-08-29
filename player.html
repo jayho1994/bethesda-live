@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0B1F2A">
+<title>人生手冊 · 我的錢包</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pool:#0B1F2A;--pool2:#0E2A38;--water:#1F7A8C;--water2:#2EC4B6;
+  --clay:#B5643C;--clay-hi:#D89A6A;--clay-lo:#7E4327;--gold:#E0A542;--gold-hi:#F4CE7A;
+  --ink:#F2EAD9;--muted:#8FA7B0;--line:rgba(242,234,217,.14);--card:#12384a;
+  --g:#3FA34D;--r:#D64545;--p:#8E6FBF;--y:#E8C34A;--b:#3B7DD8;
+  --serif:"Cormorant Garamond",serif;--cjk:"Noto Serif TC","Songti TC",serif;
+  --ui:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--ui);color:var(--ink);padding-bottom:40px;
+  background:radial-gradient(900px 500px at 70% -10%,#12384a,transparent 60%),linear-gradient(180deg,var(--pool),var(--pool2) 62%,#0a2531);
+  background-attachment:fixed}
+.wrap{max-width:520px;margin:0 auto;padding:14px}
+header{text-align:center;padding:6px 0 10px}
+.greek{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--water2);opacity:.85}
+h1{font-family:var(--cjk);font-size:20px;letter-spacing:.1em;margin:2px 0}
+.sub{color:var(--muted);font-size:12.5px}
+.ripple{height:1px;margin:10px auto;max-width:300px;background:linear-gradient(90deg,transparent,var(--water),transparent)}
+
+/* 錢包 */
+.wallet{background:rgba(18,56,74,.6);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.wrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.nm{font-family:var(--cjk);font-size:19px;font-weight:600}
+.rk{font-family:var(--serif);font-size:15px;color:var(--gold-hi)}
+.toks{display:flex;gap:6px;flex-wrap:wrap}
+.tok{flex:1;min-width:56px;text-align:center;background:#0b2531;border:1px solid var(--line);border-radius:11px;padding:8px 4px}
+.tok .e{font-size:17px;line-height:1.1}
+.tok .n{font-family:var(--serif);font-size:20px;font-weight:600;margin-top:1px}
+.tok .l{font-size:10.5px;color:var(--muted)}
+.tok.mask .n{font-size:14px;color:var(--muted);letter-spacing:.05em}
+.meta{display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.cards{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);line-height:1.7}
+.cards b{color:var(--ink);font-weight:600}
+
+/* prompt 卡 */
+.prompt{background:linear-gradient(180deg,rgba(46,196,182,.10),rgba(18,56,74,.75));
+  border:1px solid rgba(46,196,182,.35);border-radius:16px;padding:16px;margin-bottom:12px;
+  animation:pop .35s ease both}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.prompt h2{font-family:var(--cjk);font-size:16px;margin:0 0 8px}
+.prompt .body{white-space:pre-wrap;line-height:1.75;font-size:14.5px;font-family:var(--cjk);margin-bottom:14px}
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{width:100%;text-align:left;background:#0b2531;color:var(--ink);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;font-size:15px;font-family:var(--ui);cursor:pointer;line-height:1.4}
+.opt:active{transform:scale(.985);background:#16465c}
+.opt .s{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.opt[disabled]{opacity:.45}
+.row2{display:flex;gap:9px}.row2 .opt{flex:1;text-align:center}
+.seal{background:linear-gradient(180deg,#8bd6c9,var(--water));color:#04171e;border:none;font-weight:700}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.bidnow{background:#0b2531;border:1px solid var(--line);border-radius:11px;padding:11px;
+  text-align:center;font-size:15px;margin-bottom:12px}
+
+/* 結果 */
+.result{background:rgba(11,37,49,.9);border:1px solid var(--line);border-left:3px solid var(--water2);
+  border-radius:12px;padding:14px;margin-bottom:12px;white-space:pre-wrap;line-height:1.8;
+  font-size:14.5px;font-family:var(--cjk);animation:pop .35s ease both}
+.waiting{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 12px;font-family:var(--cjk);line-height:1.9}
+.waiting .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--water2);
+  margin-right:6px;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.logbox{margin-top:4px}
+.logbox summary{color:var(--muted);font-size:12.5px;cursor:pointer;padding:6px 0}
+.logrow{font-size:12.5px;color:var(--muted);padding:5px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px}
+.err{background:#7e3a3a;color:#fff;border-radius:11px;padding:12px;text-align:center;font-size:14px;margin-bottom:12px}
+.status{text-align:center;font-size:11.5px;color:var(--muted);margin-top:14px}
+.locked{text-align:center;font-size:12.5px;color:var(--gold-hi);margin-top:6px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
+    <h1>人生手冊</h1>
+    <div class="sub" id="sub">連線中…</div>
+    <div class="ripple"></div>
+  </header>
+  <div id="app"></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+// ── ✏️ 只此一行：你嘅 Lambda Function URL ────────────────
+const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
+// ──────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const qp = new URLSearchParams(location.search);
+const ID = qp.get('id') || '', TOKEN = qp.get('t') || '';
+
+let VIEW = null;          // 伺服器最新狀態
+let LOCALPROMPT = null;   // 暗標籃咁嘅本地連續操作
+let LASTRESULT = '';      // 最近一次結果文字
+let busy = false;
+
+const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+function walletHTML(v) {
+  const toks = v.wallet.tokens.filter(t => !t.hidden).map(t => `
+    <div class="tok ${t.masked ? 'mask' : ''}">
+      <div class="e">${t.emoji}</div>
+      <div class="n">${t.masked ? '？？？' : t.count}</div>
+      <div class="l">${t.masked ? '' : t.name}</div>
+    </div>`).join('');
+  const meta = [];
+  if (v.wallet.gold !== null) meta.push(`🥇 金幣 ${v.wallet.gold}`);
+  if (v.wallet.markers) meta.push(`🤝 互助 ${v.wallet.markers}`);
+  meta.push(`合共 ${v.wallet.total} 枚`);
+  const c = v.cards;
+  return `<div class="wallet">
+    <div class="wrow">
+      <span class="nm">${esc(v.name)}</span>
+      <span class="rk">${v.rank ? `#${v.rank} / ${v.fieldSize}` : ''}</span>
+    </div>
+    <div class="toks">${toks}</div>
+    <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
+    <div class="cards">
+      <b>性格</b> ${esc((c.personality || []).join('、')) || '—'}　<b>原生</b> ${esc(c.environment) || '—'}<br>
+      <b>渴求</b> ${esc(c.desire) || '—'}　<b>回合</b> ${esc(v.round)}
+    </div>
+  </div>
+  ${v.locked ? '<div class="locked">🔒 本回合已入分（一回合只可以揀一個站）</div>' : ''}`;
+}
+
+function promptHTML(p) {
+  if (!p) return '';
+  if (p.kind === 'bid') {
+    const adds = p.options.map(o => `<button class="opt" onclick="act({type:'bid_add',color:'${o.value}',basket:'${encB(p.current.basket)}'})">
+        ${o.label}<span class="s">${o.sub}</span></button>`).join('');
+    return `<div class="prompt">
+      <h2>📈 ${esc(p.title)}</h2>
+      <div class="body">${esc(p.body)}</div>
+      <div class="bidnow">你而家嘅出價：<b>${esc(p.current.human)}</b>（共 ${p.current.total} 枚）</div>
+      <div class="opts">${adds}
+        <div class="row2">
+          <button class="opt ghost" onclick="act({type:'bid_clear'})">🧹 清空</button>
+          <button class="opt seal" ${p.canSeal ? '' : 'disabled'}
+            onclick="act({type:'bid_seal',basket:'${encB(p.current.basket)}'})">✅ 封標（${p.current.total}枚）</button>
+        </div>
+      </div></div>`;
+  }
+  const opts = p.options.map(o => `<button class="opt" onclick="act(${esc(JSON.stringify(actOf(p, o)))})">
+      ${esc(o.label)}${o.sub ? `<span class="s">${esc(o.sub)}</span>` : ''}</button>`).join('');
+  const icon = p.kind === 'station' ? '🧭' : p.kind === 'any' ? '🎯' : '📖';
+  return `<div class="prompt"><h2>${icon} ${esc(p.title)}</h2>
+    ${p.body ? `<div class="body">${esc(p.body)}</div>` : ''}
+    <div class="opts">${opts}</div></div>`;
+}
+const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).join('.');
+function actOf(p, o) {
+  if (p.kind === 'station') return { type: 'station', station: o.value };
+  if (p.kind === 'interactive') return { type: 'interactive', ref: p.ref, choice: o.value };
+  if (p.kind === 'any') return { type: 'any_pick', color: o.value, n: p.n };
+  return {};
+}
+
+function render() {
+  if (!VIEW) return;
+  const p = LOCALPROMPT || VIEW.pending;
+  const logs = (VIEW.log || []).slice().reverse();
+  $('sub').textContent = `${VIEW.id}　${VIEW.round}`;
+  $('app').innerHTML =
+    walletHTML(VIEW) +
+    (LASTRESULT ? `<div class="result">${esc(LASTRESULT)}</div>` : '') +
+    (p ? promptHTML(p) : `<div class="waiting"><span class="dot"></span>而家冇嘢要你做。<br>留住呢版，MC 一開新環節就會自動彈出嚟。</div>`) +
+    (logs.length ? `<details class="logbox"><summary>📜 本回合紀錄（${logs.length}）</summary>
+      ${logs.map(l => `<div class="logrow"><span>${esc(l.act)}</span><span>${esc(l.note)}</span></div>`).join('')}
+    </details>` : '');
+}
+
+async function poll() {
+  if (busy) return;
+  try {
+    const r = await fetch(`${BASE}/me?id=${encodeURIComponent(ID)}&t=${encodeURIComponent(TOKEN)}`, { cache: 'no-store' });
+    const d = await r.json();
+    if (!d.ok) { $('app').innerHTML = `<div class="err">${esc(d.msg || '連唔到')}</div>`; return; }
+    // 伺服器有新 prompt 就蓋過本地暫存
+    if (d.view.pending && (!VIEW || JSON.stringify(d.view.pending) !== JSON.stringify(VIEW.pending))) LOCALPROMPT = null;
+    VIEW = d.view; render();
+    $('status').textContent = `更新於 ${new Date().toLocaleTimeString('zh-HK')}`;
+  } catch (e) {
+    $('status').textContent = '連線唔到，重試中…';
+  }
+}
+
+async function act(a) {
+  if (busy) return; busy = true;
+  const btns = document.querySelectorAll('.opt'); btns.forEach(b => b.disabled = true);
+  try {
+    const r = await fetch(`${BASE}/act`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: ID, token: TOKEN, action: a }) });
+    const d = await r.json();
+    if (d.view) VIEW = d.view;
+    LASTRESULT = d.text || '';
+    LOCALPROMPT = d.immediate || null;      // 暗標籃／任意代幣連續操作留喺本地
+    if (!d.ok && d.msg) LASTRESULT = d.msg;
+    render();
+  } catch (e) {
+    LASTRESULT = '網絡唔穩，撳多次。'; render();
+  } finally { busy = false; }
+}
+window.act = act;
+
+if (!ID || !TOKEN) {
+  $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
+} else { poll(); setInterval(poll, 4000); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+</script>
+</body>
+</html>
