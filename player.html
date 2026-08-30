@@ -9,95 +9,93 @@
 <title>人生手冊 · 我的錢包</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- 只載拉丁／希臘字重（幾十 KB）；中文用系統內建襯線體，iOS/Android 都有，唔使等落載 -->
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* ── Claude 暖調 · 瓦器大理石 ── */
-  --paper:#F0EEE6;      /* 米白紙 */
-  --paper2:#FAF9F5;     /* 更淺 */
-  --clay:#D97757;       /* 陶土（主色）*/
-  --clay-deep:#9E4529;
-  --clay-soft:#E8C0A8;
-  --ink:#141413;        /* 主文字 */
-  --ink2:#3D3D3A;
-  --muted:#6B6963;
-  --faint:#A8A59D;
-  --line:rgba(20,20,19,.11);
-  --line2:rgba(20,20,19,.06);
-  /* 代幣色：暖調、低飽和，喺米白底上睇得清 */
+  --paper:#F0EEE6;--paper2:#FAF9F5;
+  --clay:#D97757;--clay-deep:#9E4529;--clay-soft:#E8C0A8;
+  --ink:#141413;--ink2:#3D3D3A;--muted:#6B6963;--faint:#A8A59D;
+  --line:rgba(20,20,19,.11);--line2:rgba(20,20,19,.06);
   --g:#4C7A52;--r:#BE5A4C;--p:#7A6099;--y:#9E7016;--b:#43698F;
   --serif:"Cormorant Garamond","Songti TC","Noto Serif CJK TC","Noto Serif TC",serif;
   --cjk:"Songti TC","Noto Serif CJK TC","Noto Serif TC","Source Han Serif TC",
         "PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",serif;
   --ui:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans CJK TC",
        "Microsoft JhengHei",Roboto,system-ui,sans-serif;
+  --spring:cubic-bezier(.34,1.56,.64,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
 body{
-  font-family:var(--ui);color:var(--ink);padding-bottom:34px;
-  background-color:var(--paper);
-  /* ── 瓦器大理石：暖米白底 + 陶土脈紋，全部 CSS 生成，零圖片 ── */
+  font-family:var(--ui);color:var(--ink);padding-bottom:36px;background-color:var(--paper);
   background-image:
     radial-gradient(1200px 700px at 82% -14%, rgba(217,119,87,.10), transparent 60%),
-    radial-gradient(820px 560px at 4% 16%, rgba(180,87,58,.055), transparent 64%),
+    radial-gradient(820px 560px at 4% 16%, rgba(158,69,41,.055), transparent 64%),
     radial-gradient(640px 640px at 46% 108%, rgba(217,119,87,.06), transparent 62%),
-    repeating-linear-gradient(72deg,
-      transparent 0 26px, rgba(180,87,58,.055) 26px 27px,
-      transparent 27px 54px, rgba(20,20,19,.030) 54px 55px,
-      transparent 55px 112px),
-    repeating-linear-gradient(-54deg,
-      transparent 0 44px, rgba(20,20,19,.026) 44px 45px,
-      transparent 45px 96px, rgba(217,119,87,.055) 96px 97px,
-      transparent 97px 168px),
-    repeating-linear-gradient(18deg,
-      transparent 0 150px, rgba(180,87,58,.035) 150px 152px, transparent 152px 300px),
-    repeating-linear-gradient(-83deg,
-      transparent 0 200px, rgba(20,20,19,.018) 200px 201px, transparent 201px 420px),
+    repeating-linear-gradient(72deg,transparent 0 26px, rgba(158,69,41,.055) 26px 27px,
+      transparent 27px 54px, rgba(20,20,19,.030) 54px 55px, transparent 55px 112px),
+    repeating-linear-gradient(-54deg,transparent 0 44px, rgba(20,20,19,.026) 44px 45px,
+      transparent 45px 96px, rgba(217,119,87,.055) 96px 97px, transparent 97px 168px),
+    repeating-linear-gradient(18deg,transparent 0 150px, rgba(158,69,41,.035) 150px 152px, transparent 152px 300px),
+    repeating-linear-gradient(-83deg,transparent 0 200px, rgba(20,20,19,.018) 200px 201px, transparent 201px 420px),
     linear-gradient(166deg,#FAF9F5 0%,#F2F0E8 40%,#EDEAE0 72%,#F5F2EA 100%);
   background-attachment:fixed;background-size:cover;
 }
-.wrap{max-width:540px;margin:0 auto;padding:14px 14px 0}
+.wrap{max-width:540px;margin:0 auto;padding:12px 14px 0}
+header{text-align:center;padding:8px 0 2px}
+.greek{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--clay-deep);opacity:.85}
+h1{font-family:var(--cjk);font-size:21px;font-weight:600;letter-spacing:.2em;margin:3px 0 0;text-indent:.2em}
 
-header{text-align:center;padding:10px 0 4px}
-.greek{font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--clay-deep);opacity:.85}
-h1{font-family:var(--cjk);font-size:22px;font-weight:600;letter-spacing:.2em;margin:4px 0 0;
-  text-indent:.2em;color:var(--ink)}
-.ripple{height:1px;margin:12px auto 14px;max-width:260px;
-  background:linear-gradient(90deg,transparent,rgba(217,119,87,.55),transparent)}
+/* ═══ 人生階段橫額 ═══ */
+.stage{margin:12px 0 12px;text-align:center;position:relative;
+  animation:stageIn .55s var(--spring) both}
+@keyframes stageIn{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
+.stage .rail{height:1px;background:linear-gradient(90deg,transparent,rgba(158,69,41,.42),transparent);margin-bottom:9px}
+.stage .row{display:inline-flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
+.stage .rd{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--clay-deep);
+  border:1px solid rgba(158,69,41,.34);border-radius:20px;padding:1px 10px;letter-spacing:.06em}
+.stage .ic{font-size:16px}
+.stage .nm{font-family:var(--cjk);font-size:16.5px;font-weight:600;color:var(--ink);letter-spacing:.07em}
+.stage .ag{font-family:var(--serif);font-size:15px;color:var(--ink2)}
+.stage .tg{font-family:var(--cjk);font-size:12.5px;color:var(--muted)}
+.stage .nt{font-family:var(--cjk);font-size:12px;color:var(--faint);margin-top:5px;line-height:1.6}
+.stage .rail2{height:1px;background:linear-gradient(90deg,transparent,rgba(158,69,41,.22),transparent);margin-top:9px}
 
-/* ── 大號碼（畀站長睇）── */
+/* ═══ 號碼牌（3D 浮起）═══ */
 .badge{display:flex;align-items:center;justify-content:center;gap:13px;
-  background:linear-gradient(140deg,rgba(217,119,87,.13),rgba(232,192,168,.09));
-  border:1px solid rgba(217,119,87,.34);border-radius:16px;padding:12px 15px;margin-bottom:12px;
-  box-shadow:0 2px 14px rgba(180,87,58,.10)}
-.badge .no{font-family:var(--serif);font-size:40px;font-weight:600;line-height:1;
-  color:var(--clay-deep);letter-spacing:.03em}
+  background:linear-gradient(140deg,rgba(217,119,87,.15),rgba(232,192,168,.08));
+  border:1px solid rgba(217,119,87,.36);border-radius:16px;padding:12px 15px;margin-bottom:12px;
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 4px 0 rgba(158,69,41,.13),0 8px 20px rgba(158,69,41,.13);
+  animation:cardIn .5s var(--spring) both}
+.badge .no{font-family:var(--serif);font-size:40px;font-weight:600;line-height:1;color:var(--clay-deep)}
 .badge .who{text-align:left;line-height:1.35}
-.badge .who .n{font-family:var(--cjk);font-size:19px;font-weight:600;color:var(--ink)}
+.badge .who .n{font-family:var(--cjk);font-size:19px;font-weight:600}
 .badge .who .t{font-size:11px;color:var(--muted)}
 
-.card{background:rgba(255,254,250,.72);
-  border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;
-  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
-  box-shadow:0 1px 3px rgba(20,20,19,.05),0 6px 22px rgba(20,20,19,.045)}
-.card h2{font-family:var(--cjk);font-size:15px;font-weight:600;margin:0 0 11px;
-  letter-spacing:.05em;color:var(--ink)}
+/* ═══ 卡（分層立體）═══ */
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card{background:rgba(255,254,250,.74);border:1px solid var(--line);border-radius:16px;
+  padding:15px;margin-bottom:12px;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 2px 0 rgba(20,20,19,.045),
+             0 10px 26px rgba(20,20,19,.07);
+  animation:cardIn .45s var(--spring) both}
+.card h2{font-family:var(--cjk);font-size:15px;font-weight:600;margin:0 0 11px;letter-spacing:.05em}
 .card h2 .hint{float:right;font-size:11px;color:var(--faint);font-weight:400;letter-spacing:0}
-
 .wrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
 .rk{font-family:var(--serif);font-size:18px;color:var(--clay-deep);font-weight:600}
 .rk small{font-size:11px;color:var(--faint);font-family:var(--ui);font-weight:400}
 .toks{display:flex;gap:6px}
-.tok{flex:1;text-align:center;background:rgba(240,238,230,.72);border:1px solid var(--line2);
-  border-radius:12px;padding:9px 2px;position:relative;overflow:hidden}
+.tok{flex:1;text-align:center;background:rgba(240,238,230,.8);border:1px solid var(--line2);
+  border-radius:12px;padding:9px 2px;position:relative;overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 rgba(20,20,19,.05)}
 .tok::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;opacity:.9}
 .tok.k-green::after{background:var(--g)}.tok.k-red::after{background:var(--r)}
 .tok.k-purple::after{background:var(--p)}.tok.k-yellow::after{background:var(--y)}
 .tok.k-blue::after{background:var(--b)}
 .tok .e{font-size:15px;line-height:1.1}
-.tok .n{font-family:var(--serif);font-size:27px;font-weight:600;line-height:1.1;margin-top:1px;color:var(--ink)}
+.tok .n{font-family:var(--serif);font-size:27px;font-weight:600;line-height:1.1;margin-top:1px;
+  transition:transform .4s var(--spring)}
+.tok.bump .n{transform:scale(1.35)}
 .tok .l{font-size:10px;color:var(--muted);font-family:var(--cjk)}
 .tok.mask .n{font-size:15px;color:var(--faint);letter-spacing:.06em}
 .meta{display:flex;gap:15px;justify-content:center;margin-top:11px;font-size:13px;
@@ -106,46 +104,71 @@ h1{font-family:var(--cjk);font-size:22px;font-weight:600;letter-spacing:.2em;mar
   font-size:12.5px;color:var(--muted);line-height:1.85;font-family:var(--cjk)}
 .cardsline b{color:var(--ink2);font-weight:600}
 
-.prompt{background:linear-gradient(150deg,rgba(217,119,87,.10),rgba(255,254,250,.86));
-  border:1px solid rgba(217,119,87,.32);border-radius:16px;padding:17px;margin-bottom:12px;
-  box-shadow:0 2px 5px rgba(20,20,19,.05),0 8px 26px rgba(180,87,58,.08);
-  animation:pop .38s ease both}
-@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.prompt h2{font-family:var(--cjk);font-size:16.5px;margin:0 0 10px;color:var(--ink)}
-.prompt .body{white-space:pre-wrap;line-height:1.9;font-size:15px;font-family:var(--cjk);
+/* ═══ prompt ═══ */
+.prompt{background:linear-gradient(150deg,rgba(217,119,87,.11),rgba(255,254,250,.88));
+  border:1px solid rgba(217,119,87,.34);border-radius:16px;padding:17px;margin-bottom:12px;
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 3px 0 rgba(158,69,41,.10),
+             0 12px 30px rgba(158,69,41,.11);
+  animation:cardIn .5s var(--spring) both}
+.prompt h2{font-family:var(--cjk);font-size:16.5px;margin:0 0 10px}
+.prompt .body{white-space:pre-wrap;line-height:1.95;font-size:15px;font-family:var(--cjk);
   margin-bottom:16px;color:var(--ink2)}
-.opts{display:flex;flex-direction:column;gap:9px}
-button.opt{width:100%;text-align:left;background:rgba(255,254,250,.92);color:var(--ink);
-  border:1px solid var(--line);border-radius:12px;padding:14px 15px;font-size:15.5px;
-  font-family:var(--cjk);cursor:pointer;line-height:1.45;transition:transform .1s,background .12s;
-  box-shadow:0 1px 2px rgba(20,20,19,.04)}
-button.opt:active{transform:scale(.985);background:rgba(232,192,168,.32)}
-button.opt .s{display:block;font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--ui)}
-button.opt[disabled]{opacity:.42}
-.row2{display:flex;gap:9px}.row2 button.opt{flex:1;text-align:center}
-button.seal{background:linear-gradient(180deg,var(--clay),var(--clay-deep));color:#FFF9F5;
-  border:none;font-weight:700;box-shadow:0 2px 8px rgba(180,87,58,.28)}
-button.ghost{background:transparent;color:var(--muted);box-shadow:none}
-.bidnow{background:rgba(240,238,230,.8);border:1px solid var(--line);border-radius:12px;
-  padding:12px;text-align:center;font-size:16.5px;margin-bottom:12px;font-family:var(--serif);color:var(--ink)}
+.opts{display:flex;flex-direction:column;gap:10px}
 
-.result{background:rgba(255,254,250,.9);border:1px solid var(--line);
+/* ═══ 有份量嘅掣：實體按鍵感 ═══ */
+button.opt{width:100%;text-align:left;background:linear-gradient(180deg,#FFFDF9,#F6F3EC);
+  color:var(--ink);border:1px solid var(--line);border-radius:13px;padding:14px 16px;
+  font-size:15.5px;font-family:var(--cjk);cursor:pointer;line-height:1.45;position:relative;
+  box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 3px 0 rgba(20,20,19,.13),0 6px 14px rgba(20,20,19,.09);
+  transform:translateY(0);transition:transform .09s ease,box-shadow .09s ease,background .12s}
+button.opt:active{transform:translateY(3px);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 rgba(20,20,19,.13),0 2px 6px rgba(20,20,19,.10);
+  background:linear-gradient(180deg,#F7EFE7,#EFE6DC)}
+button.opt.pressing{transform:translateY(3px) scale(.995)}
+button.opt .s{display:block;font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--ui)}
+button.opt[disabled]{opacity:.42;transform:none!important;box-shadow:0 2px 0 rgba(20,20,19,.08)}
+.row2{display:flex;gap:10px}.row2 button.opt{flex:1;text-align:center}
+button.seal{background:linear-gradient(180deg,#E08A67,var(--clay-deep));color:#FFF9F5;
+  border:1px solid rgba(158,69,41,.6);font-weight:700;
+  box-shadow:0 1px 0 rgba(255,255,255,.28) inset,0 3px 0 #7C3520,0 8px 18px rgba(158,69,41,.32)}
+button.seal:active{box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 0 0 #7C3520,0 3px 8px rgba(158,69,41,.28)}
+button.ghost{background:linear-gradient(180deg,#F4F1EA,#EAE6DD);color:var(--muted);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 rgba(20,20,19,.1),0 4px 10px rgba(20,20,19,.06)}
+button.mini{font-size:13px;padding:9px 14px;border-radius:11px;width:auto}
+.bidnow{background:rgba(240,238,230,.85);border:1px solid var(--line);border-radius:12px;
+  padding:12px;text-align:center;font-size:16.5px;margin-bottom:12px;font-family:var(--serif);
+  box-shadow:0 2px 0 rgba(20,20,19,.05) inset}
+
+/* ═══ 結果 ═══ */
+.result{background:rgba(255,254,250,.93);border:1px solid var(--line);
   border-left:3px solid var(--clay);border-radius:12px;padding:16px;margin-bottom:12px;
-  white-space:pre-wrap;line-height:1.95;font-size:15px;font-family:var(--cjk);
-  color:var(--ink2);box-shadow:0 4px 18px rgba(20,20,19,.05);animation:pop .38s ease both}
+  white-space:pre-wrap;line-height:2.0;font-size:15px;font-family:var(--cjk);color:var(--ink2);
+  box-shadow:0 2px 0 rgba(20,20,19,.04),0 10px 24px rgba(20,20,19,.07);
+  animation:resultIn .6s var(--spring) both}
+@keyframes resultIn{from{opacity:0;transform:translateY(14px) rotateX(6deg)}to{opacity:1;transform:none}}
 .result .tag{display:block;font-size:11px;color:var(--clay-deep);margin-bottom:8px;
   letter-spacing:.12em;font-family:var(--ui)}
 .waiting{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 12px;
   font-family:var(--cjk);line-height:2}
-.waiting .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:var(--clay);margin-right:7px;animation:blink 1.7s ease-in-out infinite}
+.waiting .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--clay);
+  margin-right:7px;animation:blink 1.7s ease-in-out infinite}
 @keyframes blink{50%{opacity:.22}}
+.chosenbox{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.chosenbox .cv{font-family:var(--cjk);font-size:16px;font-weight:600}
 
-.chartbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
-svg.traj{display:block;width:100%;height:auto}
-.legend{display:flex;gap:11px;justify-content:center;margin-top:9px;flex-wrap:wrap;
-  font-size:11px;color:var(--muted)}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+/* ═══ 人物養成 ═══ */
+.avatarwrap{display:flex;justify-content:center;padding:2px 0 6px}
+svg.avatar{width:172px;height:auto;overflow:visible}
+.avcap{text-align:center;font-family:var(--cjk);font-size:12.5px;color:var(--muted);
+  line-height:1.7;margin-top:2px}
+.avcap b{color:var(--clay-deep);font-weight:600}
+.growth{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:12px 2px 4px;margin-top:10px;border-top:1px dashed var(--line)}
+.gstep{flex:0 0 auto;text-align:center;width:62px;opacity:.9}
+.gstep svg{width:52px;height:auto}
+.gstep .gl{font-family:var(--serif);font-size:11px;color:var(--muted);margin-top:1px}
+.gstep.now .gl{color:var(--clay-deep);font-weight:600}
+.gstep.now{opacity:1}
 .tl{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
 .tlrow{display:flex;gap:9px;padding:6px 0;font-size:12.5px;align-items:baseline}
 .tlrow .rd{font-family:var(--serif);font-size:14px;color:var(--clay-deep);min-width:32px;
@@ -175,7 +198,6 @@ details[open] summary::before{content:"▾ "}
   <header>
     <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
     <h1>人生手冊</h1>
-    <div class="ripple"></div>
   </header>
   <div id="app"></div>
   <div class="status" id="status"></div>
@@ -188,30 +210,29 @@ const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1
 const $ = id => document.getElementById(id);
 const qp = new URLSearchParams(location.search);
 const ID = qp.get('id') || '', TOKEN = qp.get('t') || '';
-const SKEY = 'bethesda_player_' + ID;      // 本機救生艇
+const SKEY = 'bethesda_player_' + ID;
 
-let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, ACTIONS = [], busy = false, everOK = false;
+let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, ACTIONS = [], busy = false;
+let everOK = false, PREVTOK = null;
 
 const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g,
   c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
 
-// ═══ 救生艇：本機保存／還原（防唔小心 refresh 或熄咗）═══
+// ═══ 救生艇 ═══
 function save() {
-  try {
-    localStorage.setItem(SKEY, JSON.stringify({
-      view: VIEW, localPrompt: LOCALPROMPT, lastResult: LASTRESULT, ts: Date.now() }));
-  } catch {}
+  try { localStorage.setItem(SKEY, JSON.stringify({
+    view: VIEW, localPrompt: LOCALPROMPT, lastResult: LASTRESULT, ts: Date.now() })); } catch {}
 }
 function restore() {
   try {
     const d = JSON.parse(localStorage.getItem(SKEY) || 'null');
-    if (!d || Date.now() - d.ts > 86400000) return false;   // 超過一日就唔還原
+    if (!d || Date.now() - d.ts > 86400000) return false;
     VIEW = d.view; LOCALPROMPT = d.localPrompt; LASTRESULT = d.lastResult;
     return !!VIEW;
   } catch { return false; }
 }
 
-// ═══ 掣工廠（action 存陣列，掣只帶 index — 唔用 inline onclick）═══
 function btn(cls, action, inner, disabled) {
   const i = ACTIONS.push(action) - 1;
   return '<button class="' + cls + '" data-act="' + i + '"' + (disabled ? ' disabled' : '') + '>' + inner + '</button>';
@@ -220,8 +241,172 @@ const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).j
 function actOf(p, o) {
   if (p.kind === 'station') return { type: 'station', station: o.value };
   if (p.kind === 'interactive') return { type: 'interactive', ref: p.ref, choice: o.value };
-  if (p.kind === 'any') return { type: 'any_pick', color: o.value, n: p.n };
   return {};
+}
+
+// ═══════════════════════════════════════════════════════════
+//  人物養成：sketchy 手繪風，隨人生階段 + 代幣結構變化
+// ═══════════════════════════════════════════════════════════
+const STAGE_ORDER = ['R1','R2','R3','R4','R5','R6'];
+const stageOf = r => { const n = parseInt(String(r).replace(/\D/g, ''), 10) || 1; return Math.min(6, Math.max(1, n)); };
+const TOKCOL = { green:'#4C7A52', red:'#BE5A4C', purple:'#7A6099', yellow:'#9E7016', blue:'#43698F' };
+
+// 主導代幣（R3 前唔計 🔵，保密）
+function dominant(t, roundNum) {
+  const keys = ['green','red','purple','yellow'].concat(roundNum >= 3 ? ['blue'] : []);
+  let best = null, bv = 0;
+  for (const k of keys) if ((t[k] || 0) > bv) { bv = t[k] || 0; best = k; }
+  return bv > 0 ? best : null;
+}
+
+// 生成一個人物 SVG。size: 'big' | 'mini'
+function avatarSVG(tokens, roundNum, opts) {
+  opts = opts || {};
+  const mini = opts.mini;
+  const uid = 'a' + Math.random().toString(36).slice(2, 8);
+  const dom = dominant(tokens || {}, roundNum);
+  const total = ['green','red','purple','yellow','blue'].reduce((s, k) => s + (tokens?.[k] || 0), 0);
+  const ink = '#2B2A27', SW = mini ? 2.4 : 2.1;
+  // 站姿：代幣愈多愈挺；風暴回合微駝
+  const slouch = roundNum === 5 ? 5 : Math.max(0, 4 - Math.min(4, total / 4));
+  const P = [];                                            // 圖層
+
+  // ── 服裝／道具：按人生階段 ──
+  const wear = {
+    1: { top:'#6E86A8', label:'校服' },      // 青少年 · 校服
+    2: { top:'#8A7CA8', label:'連帽衫' },    // 大學
+    3: { top:'#5E7F86', label:'恤衫' },      // 初職
+    4: { top:'#4A4A52', label:'西裝' },      // 建立期
+    5: { top:'#6B5F58', label:'風衣（濕透）' },
+    6: { top:'#7B7269', label:'便服' },
+  }[roundNum] || { top:'#6E86A8', label:'' };
+
+  // 身
+  P.push(`<path d="M100 ${86+slouch} C86 ${92+slouch} 78 ${112+slouch} 77 ${150+slouch}
+      L123 ${150+slouch} C122 ${112+slouch} 114 ${92+slouch} 100 ${86+slouch} Z"
+      fill="${wear.top}" fill-opacity=".82" stroke="${ink}" stroke-width="${SW}" stroke-linejoin="round"/>`);
+  // 腳
+  P.push(`<path d="M86 ${150+slouch} L84 ${196+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round" fill="none"/>
+          <path d="M114 ${150+slouch} L117 ${196+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round" fill="none"/>
+          <path d="M78 ${198+slouch} L92 ${198+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round"/>
+          <path d="M111 ${198+slouch} L125 ${198+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round"/>`);
+  // 手
+  const armR = roundNum === 6 ? `M120 ${104+slouch} C134 ${118+slouch} 132 ${136+slouch} 124 ${146+slouch}`
+             : `M120 ${104+slouch} C136 ${114+slouch} 140 ${132+slouch} 136 ${148+slouch}`;
+  P.push(`<path d="M80 ${104+slouch} C64 ${114+slouch} 60 ${132+slouch} 64 ${148+slouch}"
+      stroke="${ink}" stroke-width="${SW+.4}" fill="none" stroke-linecap="round"/>
+    <path d="${armR}" stroke="${ink}" stroke-width="${SW+.4}" fill="none" stroke-linecap="round"/>`);
+  // 頭
+  P.push(`<ellipse cx="100" cy="${62+slouch}" rx="25" ry="27" fill="#F3E2D2" stroke="${ink}" stroke-width="${SW}"/>`);
+  // 髮
+  P.push(`<path d="M76 ${56+slouch} C78 ${34+slouch} 122 ${34+slouch} 124 ${56+slouch}
+      C118 ${46+slouch} 106 ${42+slouch} 100 ${44+slouch} C92 ${42+slouch} 82 ${46+slouch} 76 ${56+slouch} Z"
+      fill="#3A322C" stroke="${ink}" stroke-width="${SW-.4}" stroke-linejoin="round"/>`);
+  // 表情：內在高＝閉眼安靜；風暴＝擔憂；否則普通
+  const calm = (tokens?.purple || 0) >= 3;
+  if (roundNum === 5) {
+    P.push(`<path d="M89 ${60+slouch} l7 3 M111 ${60+slouch} l-7 3" stroke="${ink}" stroke-width="${SW-.5}" stroke-linecap="round"/>
+      <path d="M92 ${76+slouch} C97 ${72+slouch} 103 ${72+slouch} 108 ${76+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
+  } else if (calm) {
+    P.push(`<path d="M89 ${62+slouch} C92 ${65+slouch} 96 ${65+slouch} 99 ${62+slouch}" stroke="${ink}" stroke-width="${SW-.5}" fill="none" stroke-linecap="round"/>
+      <path d="M103 ${62+slouch} C106 ${65+slouch} 110 ${65+slouch} 113 ${62+slouch}" stroke="${ink}" stroke-width="${SW-.5}" fill="none" stroke-linecap="round"/>
+      <path d="M93 ${75+slouch} C98 ${79+slouch} 104 ${79+slouch} 109 ${75+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
+  } else {
+    P.push(`<circle cx="92" cy="${62+slouch}" r="2.4" fill="${ink}"/><circle cx="110" cy="${62+slouch}" r="2.4" fill="${ink}"/>
+      <path d="M93 ${76+slouch} C98 ${79+slouch} 104 ${79+slouch} 109 ${76+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
+  }
+  // 階段特徵
+  if (roundNum === 1) {   // 校服領 + 書包帶
+    P.push(`<path d="M92 ${89+slouch} L100 ${100+slouch} L108 ${89+slouch}" fill="none" stroke="#FFFFFF" stroke-width="${SW+1.2}" stroke-linejoin="round"/>
+      <path d="M92 ${89+slouch} L100 ${100+slouch} L108 ${89+slouch}" fill="none" stroke="${ink}" stroke-width="${SW-.5}" stroke-linejoin="round"/>
+      <path d="M100 ${100+slouch} l-3 13 l3 4 l3-4 z" fill="#B03A3A" stroke="${ink}" stroke-width="1.2"/>
+      <path d="M84 ${94+slouch} L112 ${140+slouch}" stroke="#6B4A32" stroke-width="${SW+1}" fill="none" opacity=".9"/>`);
+  } else if (roundNum === 2) {   // 連帽 + 背囊
+    P.push(`<path d="M84 ${90+slouch} C92 ${100+slouch} 108 ${100+slouch} 116 ${90+slouch}"
+        fill="none" stroke="${ink}" stroke-width="${SW-.4}"/>
+      <path d="M78 ${104+slouch} C68 ${112+slouch} 68 ${136+slouch} 76 ${142+slouch}"
+        fill="#7A6A58" fill-opacity=".55" stroke="${ink}" stroke-width="${SW-.6}"/>`);
+  } else if (roundNum === 3) {   // 恤衫鈕 + 工作證
+    P.push(`<path d="M100 ${92+slouch} L100 ${146+slouch}" stroke="${ink}" stroke-width="1.1" opacity=".65"/>
+      <circle cx="100" cy="${108+slouch}" r="1.7" fill="${ink}"/><circle cx="100" cy="${124+slouch}" r="1.7" fill="${ink}"/>
+      <path d="M92 ${90+slouch} L104 ${118+slouch}" stroke="#8A8A8A" stroke-width="1.4"/>
+      <rect x="100" y="${118+slouch}" width="11" height="14" rx="2" fill="#EFEAE0" stroke="${ink}" stroke-width="1.3"/>`);
+  } else if (roundNum === 4) {   // 西裝褸 + 公事包
+    P.push(`<path d="M88 ${90+slouch} L100 ${106+slouch} L112 ${90+slouch}" fill="none" stroke="${ink}" stroke-width="${SW-.4}"/>
+      <path d="M100 ${106+slouch} l-3.5 15 l3.5 5 l3.5-5 z" fill="#7C2F2F" stroke="${ink}" stroke-width="1.2"/>
+      <rect x="126" y="${146+slouch}" width="24" height="18" rx="2.5" fill="#5A4636" stroke="${ink}" stroke-width="${SW-.5}"/>
+      <path d="M133 ${146+slouch} a5 5 0 0 1 10 0" fill="none" stroke="${ink}" stroke-width="1.4"/>`);
+  } else if (roundNum === 5) {   // 風雨線
+    P.push(`<g opacity=".55" stroke="#5E7A88" stroke-width="1.6" stroke-linecap="round">
+      <path d="M40 ${40+slouch} l14 26"/><path d="M58 ${28+slouch} l14 26"/>
+      <path d="M148 ${34+slouch} l14 26"/><path d="M164 ${56+slouch} l12 22"/>
+      <path d="M28 ${76+slouch} l12 22"/></g>`);
+  } else if (roundNum === 6) {   // 靜止：坐低嘅光
+    P.push(`<ellipse cx="100" cy="${206+slouch}" rx="46" ry="7" fill="#C9BFAE" opacity=".45"/>`);
+  }
+  // 主導代幣道具
+  if (dom === 'green')  P.push(`<rect x="128" y="${142+slouch}" width="22" height="16" rx="2" fill="${TOKCOL.green}" fill-opacity=".8" stroke="${ink}" stroke-width="1.6"/>`);
+  if (dom === 'red')    P.push(`<g transform="translate(150 ${112+slouch}) scale(.62)"><ellipse cx="0" cy="0" rx="17" ry="19" fill="#F3E2D2" stroke="${ink}" stroke-width="3"/><path d="M-16 34 C-16 12 16 12 16 34 Z" fill="${TOKCOL.red}" fill-opacity=".7" stroke="${ink}" stroke-width="3"/></g>`);
+  if (dom === 'purple') P.push(`<g fill="none" stroke="${TOKCOL.purple}" stroke-width="1.7" opacity=".62">
+      <circle cx="100" cy="${62+slouch}" r="40"/><circle cx="100" cy="${62+slouch}" r="50"/></g>`);
+  if (dom === 'yellow') P.push(`<g fill="${TOKCOL.yellow}" opacity=".85">
+      <rect x="56" y="${44+slouch}" width="5" height="5" rx="1" transform="rotate(18 58 46)"/>
+      <rect x="140" y="${54+slouch}" width="5" height="5" rx="1" transform="rotate(-24 142 56)"/>
+      <rect x="150" y="${88+slouch}" width="4" height="4" rx="1"/>
+      <rect x="46" y="${86+slouch}" width="4" height="4" rx="1"/></g>`);
+  if (dom === 'blue')   P.push(`<g transform="translate(140 ${128+slouch}) scale(.86)">
+      <path d="M-9 -12 l18 0 l-2 6 c8 5 10 16 6 22 c-4 6 -22 6 -26 0 c-4 -6 -2 -17 6 -22 z"
+        fill="${TOKCOL.blue}" fill-opacity=".55" stroke="${ink}" stroke-width="2"/></g>`);
+
+  const filt = `<filter id="${uid}"><feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="${(total*7+roundNum*13)%97}" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="${mini ? 1.4 : 2.2}" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+  return `<svg class="${mini ? '' : 'avatar'}" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" role="img">
+    <defs>${filt}</defs><g filter="url(#${uid})">${P.join('')}</g></svg>`;
+}
+
+const DOMLABEL = { green:'事業行頭', red:'關係行頭', purple:'內在行頭', yellow:'享樂行頭', blue:'信仰行頭' };
+const WEARLABEL = { 1:'校服', 2:'連帽衫', 3:'恤衫', 4:'西裝', 5:'風衣（濕透）', 6:'便服' };
+
+function growthHTML(v) {
+  const rn = stageOf(v.round);
+  const h = (v.history || []).filter(x => x && x.round);
+  const dom = dominant(v.wallet ? Object.fromEntries(v.wallet.tokens.map(t => [t.key, t.count])) : {}, rn);
+  const curTok = Object.fromEntries((v.wallet?.tokens || []).map(t => [t.key, t.count]));
+  const steps = h.map(p => {
+    const n = stageOf(p.round);
+    const now = String(p.round).includes('而家');
+    return '<div class="gstep' + (now ? ' now' : '') + '">' +
+      avatarSVG(p, n, { mini: true }) +
+      '<div class="gl">' + esc(String(p.round).replace('（而家）', '')) + '</div></div>';
+  }).join('');
+  const tl = (v.choices || []).slice(-10).map(c => {
+    const label = c.act === '🧭選站' ? '去咗 <em>' + esc(c.note) + '</em>'
+      : c.act === '🧭改揀' ? '<em>改咗主意</em>'
+      : c.act === '💰暗標' ? '暗標出價 <em>' + esc(c.note) + '</em>'
+      : c.act === '💰開標' ? '<em>' + esc(c.note) + '</em>'
+      : esc(c.act.replace('🎭', '')) + ' — <em>' + esc(c.note) + '</em>';
+    return '<div class="tlrow"><span class="rd">' + esc(c.round) + '</span><span class="tx">' + label + '</span></div>';
+  }).join('');
+  return '<div class="card"><h2>🧍 我而家係咁 <span class="hint">' + esc(v.round) + '</span></h2>' +
+    '<div class="avatarwrap">' + avatarSVG(curTok, rn, {}) + '</div>' +
+    '<div class="avcap">' + esc(WEARLABEL[rn] || '') +
+      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 仲未有方向') + '</div>' +
+    (steps ? '<div class="growth">' + steps + '</div>' : '') +
+    (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
+}
+
+// ═══ 各區塊 ═══
+function stageHTML(v) {
+  const s = v.stage;
+  if (!s) return '';
+  return '<div class="stage"><div class="rail"></div><div class="row">' +
+    '<span class="rd">' + esc(v.round) + '</span>' +
+    '<span class="ic">' + esc(s.icon) + '</span>' +
+    '<span class="nm">' + esc(s.stage) + '</span>' +
+    '<span class="ag">' + esc(s.age) + '</span>' +
+    '<span class="tg">· ' + esc(s.tag) + '</span></div>' +
+    (s.note ? '<div class="nt">' + esc(s.note) + '</div>' : '') +
+    '<div class="rail2"></div></div>';
 }
 
 function badgeHTML(v) {
@@ -231,18 +416,20 @@ function badgeHTML(v) {
 }
 
 function walletHTML(v) {
-  const toks = v.wallet.tokens.filter(t => !t.hidden).map(t =>
-    '<div class="tok k-' + t.key + (t.masked ? ' mask' : '') + '">' +
+  const toks = v.wallet.tokens.filter(t => !t.hidden).map(t => {
+    const bump = PREVTOK && PREVTOK[t.key] !== undefined && PREVTOK[t.key] !== t.count;
+    return '<div class="tok k-' + t.key + (t.masked ? ' mask' : '') + (bump ? ' bump' : '') + '">' +
       '<div class="e">' + t.emoji + '</div>' +
       '<div class="n">' + (t.masked ? '？？' : t.count) + '</div>' +
-      '<div class="l">' + (t.masked ? '' : esc(t.name)) + '</div></div>').join('');
+      '<div class="l">' + (t.masked ? '' : esc(t.name)) + '</div></div>';
+  }).join('');
   const meta = [];
   if (v.wallet.gold !== null) meta.push('🥇 ' + v.wallet.gold);
   if (v.wallet.markers) meta.push('🤝 ' + v.wallet.markers);
   meta.push('合共 ' + v.wallet.total + ' 枚');
   const c = v.cards;
   return '<div class="card"><div class="wrow">' +
-    '<h2 style="margin:0">👛 我的錢包 <span class="hint">' + esc(v.round) + '</span></h2>' +
+    '<h2 style="margin:0">👛 我的錢包</h2>' +
     '<span class="rk">' + (v.rank ? '#' + v.rank : '') +
       '<small>' + (v.rank ? ' / ' + v.fieldSize : '') + '</small></span></div>' +
     '<div class="toks">' + toks + '</div>' +
@@ -255,6 +442,13 @@ function walletHTML(v) {
 
 function promptHTML(p) {
   if (!p) return '';
+  if (p.kind === 'chosen') {                       // 已選站 → 可以改揀
+    return '<div class="prompt"><h2>🧭 ' + esc(p.title) + '</h2>' +
+      '<div class="chosenbox"><span class="cv">' + esc(p.body) + '</span>' +
+      btn('opt ghost mini', { type: 'station_undo' }, '↩︎ 改揀') + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-top:9px;font-family:var(--cjk)">' +
+      '未入分之前都可以改。入咗分就要搵 MC。</div></div>';
+  }
   if (p.kind === 'bid') {
     const enc = encB(p.current.basket);
     const adds = p.options.map(o => btn('opt', { type: 'bid_add', color: o.value, basket: enc },
@@ -269,59 +463,10 @@ function promptHTML(p) {
   }
   const opts = p.options.map(o => btn('opt', actOf(p, o),
     esc(o.label) + (o.sub ? '<span class="s">' + esc(o.sub) + '</span>' : ''))).join('');
-  const icon = p.kind === 'station' ? '🧭' : p.kind === 'any' ? '🎯' : '📖';
+  const icon = p.kind === 'station' ? '🧭' : '📖';
   return '<div class="prompt"><h2>' + icon + ' ' + esc(p.title) + '</h2>' +
     (p.body ? '<div class="body">' + esc(p.body) + '</div>' : '') +
     '<div class="opts">' + opts + '</div></div>';
-}
-
-// ═══ 軌跡圖（純 SVG，零外部 library）═══
-const SER = [
-  { k: 'green', c: '#4C7A52', n: '🟢' }, { k: 'red', c: '#BE5A4C', n: '🔴' },
-  { k: 'purple', c: '#7A6099', n: '🟣' }, { k: 'yellow', c: '#9E7016', n: '🟡' },
-  { k: 'blue', c: '#43698F', n: '🔵' },
-];
-function trajHTML(v) {
-  const h = (v.history || []).filter(x => x && x.round);
-  if (h.length < 2) return '';
-  const rn = parseInt(String(v.round).replace(/\D/g, ''), 10) || 1;
-  const series = SER.filter(s => s.k !== 'blue' || rn >= 3);      // 🔵 R3 前唔顯示（保密）
-  const W = 500, H = 190, PL = 30, PR = 12, PT = 14, PB = 26;
-  const maxV = Math.max(4, ...h.map(p => Math.max.apply(null, series.map(s => p[s.k] || 0))));
-  const x = i => PL + (W - PL - PR) * (h.length === 1 ? 0.5 : i / (h.length - 1));
-  const y = val => PT + (H - PT - PB) * (1 - val / maxV);
-  const grid = [0, 0.5, 1].map(f => {
-    const yy = PT + (H - PT - PB) * (1 - f);
-    return '<line x1="' + PL + '" y1="' + yy + '" x2="' + (W - PR) + '" y2="' + yy +
-      '" stroke="rgba(20,20,19,.11)" stroke-width="1"/>' +
-      '<text x="' + (PL - 6) + '" y="' + (yy + 4) + '" fill="#6B6963" font-size="10" text-anchor="end">' +
-      Math.round(maxV * f) + '</text>';
-  }).join('');
-  const lines = series.map(s => {
-    const pts = h.map((p, i) => x(i).toFixed(1) + ',' + y(p[s.k] || 0).toFixed(1)).join(' ');
-    const dots = h.map((p, i) => '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p[s.k] || 0).toFixed(1) +
-      '" r="3" fill="' + s.c + '"/>').join('');
-    return '<polyline points="' + pts + '" fill="none" stroke="' + s.c +
-      '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"/>' + dots;
-  }).join('');
-  const xlab = h.map((p, i) => '<text x="' + x(i).toFixed(1) + '" y="' + (H - 8) +
-    '" fill="#6B6963" font-size="10" text-anchor="middle">' +
-    esc(p.round.replace('（而家）', '·今')) + '</text>').join('');
-  const leg = series.map(s => '<span><i style="background:' + s.c + '"></i>' + s.n + '</span>').join('');
-
-  const tl = (v.choices || []).slice(-10).map(c => {
-    const label = c.act === '🧭選站' ? '去咗 <em>' + esc(c.note) + '</em>'
-      : c.act === '💰暗標' ? '暗標出價 <em>' + esc(c.note) + '</em>'
-      : c.act === '💰開標' ? '<em>' + esc(c.note) + '</em>'
-      : esc(c.act.replace('🎭', '')) + ' — <em>' + esc(c.note) + '</em>';
-    return '<div class="tlrow"><span class="rd">' + esc(c.round) + '</span><span class="tx">' + label + '</span></div>';
-  }).join('');
-
-  return '<div class="card"><h2>📈 我的軌跡 <span class="hint">代幣點樣行到今日</span></h2>' +
-    '<div class="chartbox"><svg class="traj" viewBox="0 0 ' + W + ' ' + H +
-      '" preserveAspectRatio="xMidYMid meet" role="img">' + grid + lines + xlab + '</svg></div>' +
-    '<div class="legend">' + leg + '</div>' +
-    (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
 }
 
 function render() {
@@ -331,15 +476,17 @@ function render() {
   const logs = (VIEW.log || []).slice().reverse();
   $('app').innerHTML =
     (everOK ? '' : '<div class="offline">📵 而家連唔到伺服器，顯示緊上次嘅紀錄。有網會自動更新。</div>') +
+    stageHTML(VIEW) +
     badgeHTML(VIEW) +
     walletHTML(VIEW) +
     (LASTRESULT ? '<div class="result"><span class="tag">最近一次結果</span>' + esc(LASTRESULT) + '</div>' : '') +
     (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
        '而家冇嘢要你做。<br>留住呢一版，MC 一開新環節就會自動彈出嚟。</div></div>') +
-    trajHTML(VIEW) +
+    growthHTML(VIEW) +
     (logs.length ? '<div class="card"><details><summary>📜 本回合完整紀錄（' + logs.length + '）</summary>' +
       logs.map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
       '</details></div>' : '');
+  PREVTOK = Object.fromEntries((VIEW.wallet?.tokens || []).map(t => [t.key, t.count]));
   save();
 }
 
@@ -359,7 +506,7 @@ async function poll() {
 }
 
 async function act(a) {
-  if (busy) return; busy = true;
+  if (busy) return; busy = true; buzz(12);
   document.querySelectorAll('button[data-act]').forEach(b => { b.disabled = true; });
   try {
     const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -369,12 +516,19 @@ async function act(a) {
     if (d.text) LASTRESULT = d.text;
     if (!d.ok && d.msg) LASTRESULT = d.msg;
     LOCALPROMPT = d.immediate || null;
-    render();
+    render(); buzz(22);
   } catch {
     LASTRESULT = '網絡唔穩，撳多次。'; render();
   } finally { busy = false; }
 }
 
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('button[data-act]');
+  if (b && !b.disabled) b.classList.add('pressing');
+});
+document.addEventListener('pointerup', () => {
+  document.querySelectorAll('button.pressing').forEach(b => b.classList.remove('pressing'));
+});
 document.addEventListener('click', e => {
   const b = e.target.closest('button[data-act]');
   if (!b || b.disabled) return;
@@ -388,7 +542,7 @@ window.addEventListener('online', poll);
 if (!ID || !TOKEN) {
   $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
 } else {
-  if (restore()) render();          // 先即刻畫返上次嘅嘢（refresh 唔會白畫面）
+  if (restore()) render();
   poll(); setInterval(poll, 4000);
 }
 </script>
