@@ -137,26 +137,34 @@ function walletHTML(v) {
 function promptHTML(p) {
   if (!p) return '';
   if (p.kind === 'bid') {
-    const adds = p.options.map(o => `<button class="opt" onclick="act({type:'bid_add',color:'${o.value}',basket:'${encB(p.current.basket)}'})">
-        ${o.label}<span class="s">${o.sub}</span></button>`).join('');
+    const enc = encB(p.current.basket);
+    const adds = p.options.map(o => btn('opt', { type: 'bid_add', color: o.value, basket: enc },
+      `${esc(o.label)}<span class="s">${esc(o.sub)}</span>`)).join('');
     return `<div class="prompt">
       <h2>📈 ${esc(p.title)}</h2>
       <div class="body">${esc(p.body)}</div>
       <div class="bidnow">你而家嘅出價：<b>${esc(p.current.human)}</b>（共 ${p.current.total} 枚）</div>
       <div class="opts">${adds}
         <div class="row2">
-          <button class="opt ghost" onclick="act({type:'bid_clear'})">🧹 清空</button>
-          <button class="opt seal" ${p.canSeal ? '' : 'disabled'}
-            onclick="act({type:'bid_seal',basket:'${encB(p.current.basket)}'})">✅ 封標（${p.current.total}枚）</button>
+          ${btn('opt ghost', { type: 'bid_clear' }, '🧹 清空')}
+          ${btn('opt seal', { type: 'bid_seal', basket: enc }, `✅ 封標（${p.current.total}枚）`, !p.canSeal)}
         </div>
       </div></div>`;
   }
-  const opts = p.options.map(o => `<button class="opt" onclick="act(${esc(JSON.stringify(actOf(p, o)))})">
-      ${esc(o.label)}${o.sub ? `<span class="s">${esc(o.sub)}</span>` : ''}</button>`).join('');
+  const opts = p.options.map(o => btn('opt', actOf(p, o),
+    `${esc(o.label)}${o.sub ? `<span class="s">${esc(o.sub)}</span>` : ''}`)).join('');
   const icon = p.kind === 'station' ? '🧭' : p.kind === 'any' ? '🎯' : '📖';
   return `<div class="prompt"><h2>${icon} ${esc(p.title)}</h2>
     ${p.body ? `<div class="body">${esc(p.body)}</div>` : ''}
     <div class="opts">${opts}</div></div>`;
+}
+
+// ── 掣工廠：action 存落 ACTIONS 陣列，掣只帶一個 index ──
+//    （唔再將 JSON 塞入 onclick attribute — 引號會截斷 attribute，係之前撳唔到嘅原因）
+let ACTIONS = [];
+function btn(cls, action, inner, disabled) {
+  const i = ACTIONS.push(action) - 1;
+  return `<button class="${cls}" data-act="${i}"${disabled ? ' disabled' : ''}>${inner}</button>`;
 }
 const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).join('.');
 function actOf(p, o) {
@@ -168,6 +176,7 @@ function actOf(p, o) {
 
 function render() {
   if (!VIEW) return;
+  ACTIONS = [];
   const p = LOCALPROMPT || VIEW.pending;
   const logs = (VIEW.log || []).slice().reverse();
   $('sub').textContent = `${VIEW.id}　${VIEW.round}`;
@@ -211,7 +220,13 @@ async function act(a) {
     LASTRESULT = '網絡唔穩，撳多次。'; render();
   } finally { busy = false; }
 }
-window.act = act;
+// 事件委派：一個 listener 搞掂所有掣（掣係 render 出嚟嘅，唔可以逐粒綁）
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b || b.disabled) return;
+  const a = ACTIONS[parseInt(b.dataset.act, 10)];
+  if (a) act(a);
+});
 
 if (!ID || !TOKEN) {
   $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
