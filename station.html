@@ -10,6 +10,15 @@
   header h1{margin:0;font-size:19px;letter-spacing:.1em} header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
   .cfg{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px}
   .cfg select,.cfg button{background:#0b2531;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:15px}
+  .searchbar{display:flex;gap:8px;padding:4px 14px 0;align-items:center}
+  .searchbar input{flex:1;background:#0b2531;color:var(--ink);border:1px solid var(--line);
+    border-radius:12px;padding:13px 14px;font-size:17px;font-family:inherit;-webkit-appearance:none}
+  .searchbar input:focus{outline:none;border-color:var(--water)}
+  .searchbar .clr{background:#0b2531;color:var(--muted);border:1px solid var(--line);
+    border-radius:12px;padding:13px 15px;font-size:15px}
+  .qhint{padding:7px 16px 0;font-size:12.5px;color:var(--muted);min-height:18px}
+  .tile.hit{border-color:var(--water);box-shadow:0 0 0 2px rgba(46,196,182,.35)}
+  .tile .num{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;color:var(--gold);line-height:1}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px;padding-bottom:70px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;user-select:none}
   .tile:active{transform:scale(.96);background:#16465c}
@@ -50,6 +59,12 @@
   <button onclick="loadRoster()">🔄 名單</button>
   <button onclick="openHist()">📝 本回合紀錄</button>
 </div>
+<div class="searchbar">
+  <input id="q" type="search" inputmode="search" autocomplete="off"
+    placeholder="🔍 打號碼或人名（例：7、P07、陳）" oninput="filterRoster()">
+  <button class="clr" onclick="clearQ()">✕</button>
+</div>
+<div id="qhint" class="qhint"></div>
 <div class="grid" id="grid">載入名單中…</div>
 
 <!-- 入分 modal -->
@@ -105,12 +120,42 @@ async function loadRoster(){
   try{
     const r=await fetch(BASE+'/roster',{cache:'no-store'});
     ROSTER=await r.json();
-    $('grid').innerHTML=ROSTER.length
-      ? ROSTER.map(p=>`<div class="tile" onclick="openModal('${p.id}')"><div class="pid">${p.id}</div><div class="pname">${p.name}</div></div>`).join('')
-      : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">未有已綁定玩家。玩家撳 deep link 綁定後，撳「🔄 名單」。</div>';
+    renderRoster();
   }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">名單載入失敗，撳「🔄 名單」重試。</div>';}
 }
 const nameOf=id=>(ROSTER.find(p=>p.id===id)||{}).name||id;
+
+// ── 搜尋：打號碼（7 / 07 / P07）或人名任何一部分即刻篩 ──
+function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,'');}
+// 配對規則（為「打個號碼即刻鎖定一個人」而設）：
+//   ① 純數字（可帶 p 前綴）→ 數值精確比對：打 7 只會出 P07，唔會撈埋 P17
+//   ② 其他 → 人名／ID 模糊比對
+function matches(p,q){
+  if(!q) return true;
+  const n=norm(q);
+  const numQ=n.replace(/^p/,'');                       // 'p7'→'7'、'P07'→'07'
+  if(/^\d+$/.test(numQ)){
+    const pn=parseInt(norm(p.id).replace(/\D/g,''),10);
+    return pn===parseInt(numQ,10);                     // 精確，唔做字串包含
+  }
+  return norm(p.name).includes(n)||norm(p.id).includes(n);
+}
+function renderRoster(list){
+  const q=($('q')&&$('q').value)||'';
+  const src=list||ROSTER;
+  const shown=src.filter(p=>matches(p,q));
+  const exact=q&&shown.length===1;
+  $('grid').innerHTML = ROSTER.length
+    ? (shown.length
+        ? shown.map(p=>`<div class="tile ${exact?'hit':''}" onclick="openModal('${p.id}')">
+             <div class="num">${p.id.replace(/^P/,'')}</div>
+             <div class="pid">${p.id}</div><div class="pname">${p.name}</div></div>`).join('')
+        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:26px">搵唔到「${q}」<br>試下淨係打號碼，例如 7</div>`)
+    : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">未有已綁定玩家。玩家綁定後撳「🔄 名單」。</div>';
+  $('qhint').textContent = q ? `${shown.length} / ${ROSTER.length} 位` : (ROSTER.length? `${ROSTER.length} 位玩家`:'');
+}
+function filterRoster(){ renderRoster(); }
+function clearQ(){ if($('q')) $('q').value=''; renderRoster(); if($('q')) $('q').focus(); }
 
 // ── 入分流程：揀分 →（事業站揀成敗）→ 確認畫面 → 送出 ──
 let cur={id:null,coins:0,success:null};
@@ -151,6 +196,7 @@ function closeModal(){$('modal').classList.remove('show');}
 function doSubmit(){
   const payload={type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,coins:cur.coins,success:cur.success};
   enqueue({kind:'checkin',payload}); closeModal(); flush();
+  clearQ();   // 清空搜尋，下一位可以即刻打號碼
 }
 
 // ── 本回合紀錄 + 取消（undo）──

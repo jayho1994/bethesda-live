@@ -4,79 +4,151 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0B1F2A">
 <title>人生手冊 · 我的錢包</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- 只載拉丁／希臘字重（幾十 KB）；中文用系統內建襯線體，iOS/Android 都有，唔使等落載 -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
-  --pool:#0B1F2A;--pool2:#0E2A38;--water:#1F7A8C;--water2:#2EC4B6;
-  --clay:#B5643C;--clay-hi:#D89A6A;--clay-lo:#7E4327;--gold:#E0A542;--gold-hi:#F4CE7A;
-  --ink:#F2EAD9;--muted:#8FA7B0;--line:rgba(242,234,217,.14);--card:#12384a;
-  --g:#3FA34D;--r:#D64545;--p:#8E6FBF;--y:#E8C34A;--b:#3B7DD8;
-  --serif:"Cormorant Garamond",serif;--cjk:"Noto Serif TC","Songti TC",serif;
-  --ui:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --pool:#0B1F2A;--water:#1F7A8C;--water2:#2EC4B6;
+  --gold:#E0A542;--gold-hi:#F4CE7A;
+  --ink:#F4EDE0;--ink-dim:#C9BFAE;--muted:#8FA7B0;--line:rgba(244,237,224,.14);
+  --g:#4FB061;--r:#E05555;--p:#9B7FD4;--y:#EFCB5A;--b:#4A8FE8;
+  /* 字型：拉丁／數字用 Cormorant（優雅襯線）；中文用系統襯線
+     iOS → Songti TC；Android → Noto Serif CJK TC。兩邊都一定有嘢頂住，唔會走版 */
+  --serif:"Cormorant Garamond","Songti TC","Noto Serif CJK TC","Noto Serif TC",serif;
+  --cjk:"Songti TC","Noto Serif CJK TC","Noto Serif TC","Source Han Serif TC",
+        "PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",serif;
+  --ui:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans CJK TC",
+       "Microsoft JhengHei",Roboto,system-ui,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
-body{font-family:var(--ui);color:var(--ink);padding-bottom:40px;
-  background:radial-gradient(900px 500px at 70% -10%,#12384a,transparent 60%),linear-gradient(180deg,var(--pool),var(--pool2) 62%,#0a2531);
-  background-attachment:fixed}
-.wrap{max-width:520px;margin:0 auto;padding:14px}
-header{text-align:center;padding:6px 0 10px}
-.greek{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--water2);opacity:.85}
-h1{font-family:var(--cjk);font-size:20px;letter-spacing:.1em;margin:2px 0}
-.sub{color:var(--muted);font-size:12.5px}
-.ripple{height:1px;margin:10px auto;max-width:300px;background:linear-gradient(90deg,transparent,var(--water),transparent)}
+body{
+  font-family:var(--ui);color:var(--ink);padding-bottom:34px;
+  background-color:#0B1F2A;
+  /* ── 大理石紋：全部 CSS 生成，零圖片、離線出到、iOS/Android 一致 ── */
+  background-image:
+    radial-gradient(1100px 620px at 78% -12%, rgba(46,196,182,.16), transparent 62%),
+    radial-gradient(760px 520px at 8% 12%, rgba(224,165,66,.075), transparent 66%),
+    repeating-linear-gradient(74deg,
+      transparent 0 22px, rgba(244,237,224,.030) 22px 23px,
+      transparent 23px 47px, rgba(244,237,224,.017) 47px 48px,
+      transparent 48px 96px),
+    repeating-linear-gradient(-58deg,
+      transparent 0 38px, rgba(244,237,224,.022) 38px 39px,
+      transparent 39px 88px, rgba(46,196,182,.028) 88px 89px,
+      transparent 89px 150px),
+    repeating-linear-gradient(21deg,
+      transparent 0 130px, rgba(244,237,224,.014) 130px 132px, transparent 132px 260px),
+    linear-gradient(168deg,#0E2A38 0%,#0B1F2A 46%,#09202B 74%,#0B2733 100%);
+  background-attachment:fixed;background-size:cover;
+}
+.wrap{max-width:540px;margin:0 auto;padding:14px 14px 0}
 
-/* 錢包 */
-.wallet{background:rgba(18,56,74,.6);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
-.wrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-.nm{font-family:var(--cjk);font-size:19px;font-weight:600}
-.rk{font-family:var(--serif);font-size:15px;color:var(--gold-hi)}
-.toks{display:flex;gap:6px;flex-wrap:wrap}
-.tok{flex:1;min-width:56px;text-align:center;background:#0b2531;border:1px solid var(--line);border-radius:11px;padding:8px 4px}
-.tok .e{font-size:17px;line-height:1.1}
-.tok .n{font-family:var(--serif);font-size:20px;font-weight:600;margin-top:1px}
-.tok .l{font-size:10.5px;color:var(--muted)}
-.tok.mask .n{font-size:14px;color:var(--muted);letter-spacing:.05em}
-.meta{display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
-.cards{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);line-height:1.7}
-.cards b{color:var(--ink);font-weight:600}
+header{text-align:center;padding:8px 0 4px}
+.greek{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--water2);opacity:.9}
+h1{font-family:var(--cjk);font-size:21px;font-weight:600;letter-spacing:.18em;margin:3px 0 0;text-indent:.18em}
+.ripple{height:1px;margin:11px auto 12px;max-width:280px;
+  background:linear-gradient(90deg,transparent,rgba(46,196,182,.75),transparent)}
 
-/* prompt 卡 */
-.prompt{background:linear-gradient(180deg,rgba(46,196,182,.10),rgba(18,56,74,.75));
-  border:1px solid rgba(46,196,182,.35);border-radius:16px;padding:16px;margin-bottom:12px;
-  animation:pop .35s ease both}
+/* ── 大號碼（畀站長睇）── */
+.badge{display:flex;align-items:center;justify-content:center;gap:12px;
+  background:linear-gradient(135deg,rgba(224,165,66,.16),rgba(244,206,122,.05));
+  border:1px solid rgba(224,165,66,.4);border-radius:15px;padding:11px 14px;margin-bottom:12px;
+  box-shadow:0 3px 18px rgba(0,0,0,.28)}
+.badge .no{font-family:var(--serif);font-size:38px;font-weight:600;line-height:1;
+  color:var(--gold-hi);letter-spacing:.03em;text-shadow:0 2px 10px rgba(224,165,66,.35)}
+.badge .who{text-align:left;line-height:1.35}
+.badge .who .n{font-family:var(--cjk);font-size:19px;font-weight:600}
+.badge .who .t{font-size:11px;color:var(--muted)}
+
+.card{background:linear-gradient(160deg,rgba(20,60,78,.62),rgba(11,31,42,.72));
+  border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  box-shadow:0 4px 22px rgba(0,0,0,.24)}
+.card h2{font-family:var(--cjk);font-size:15px;font-weight:600;margin:0 0 11px;letter-spacing:.05em}
+.card h2 .hint{float:right;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:0}
+
+.wrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+.rk{font-family:var(--serif);font-size:17px;color:var(--gold-hi)}
+.rk small{font-size:11px;color:var(--muted);font-family:var(--ui)}
+.toks{display:flex;gap:6px}
+.tok{flex:1;text-align:center;background:rgba(8,26,35,.62);border:1px solid var(--line);
+  border-radius:12px;padding:9px 2px;position:relative;overflow:hidden}
+.tok::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;opacity:.85}
+.tok.k-green::after{background:var(--g)}.tok.k-red::after{background:var(--r)}
+.tok.k-purple::after{background:var(--p)}.tok.k-yellow::after{background:var(--y)}
+.tok.k-blue::after{background:var(--b)}
+.tok .e{font-size:15px;line-height:1.1}
+.tok .n{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1.1;margin-top:1px}
+.tok .l{font-size:10px;color:var(--muted);font-family:var(--cjk)}
+.tok.mask .n{font-size:15px;color:var(--muted);letter-spacing:.06em}
+.meta{display:flex;gap:14px;justify-content:center;margin-top:11px;font-size:12.5px;
+  color:var(--ink-dim);flex-wrap:wrap;font-family:var(--serif)}
+.cardsline{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:12.5px;color:var(--muted);line-height:1.85;font-family:var(--cjk)}
+.cardsline b{color:var(--ink-dim);font-weight:600}
+
+.prompt{background:linear-gradient(160deg,rgba(46,196,182,.13),rgba(14,42,56,.8));
+  border:1px solid rgba(46,196,182,.4);border-radius:16px;padding:16px;margin-bottom:12px;
+  box-shadow:0 4px 26px rgba(46,196,182,.09);animation:pop .38s ease both}
 @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.prompt h2{font-family:var(--cjk);font-size:16px;margin:0 0 8px}
-.prompt .body{white-space:pre-wrap;line-height:1.75;font-size:14.5px;font-family:var(--cjk);margin-bottom:14px}
+.prompt h2{font-family:var(--cjk);font-size:16.5px;margin:0 0 9px}
+.prompt .body{white-space:pre-wrap;line-height:1.85;font-size:15px;font-family:var(--cjk);
+  margin-bottom:15px;color:var(--ink-dim)}
 .opts{display:flex;flex-direction:column;gap:9px}
-.opt{width:100%;text-align:left;background:#0b2531;color:var(--ink);border:1px solid var(--line);
-  border-radius:12px;padding:13px 14px;font-size:15px;font-family:var(--ui);cursor:pointer;line-height:1.4}
-.opt:active{transform:scale(.985);background:#16465c}
-.opt .s{display:block;font-size:12px;color:var(--muted);margin-top:3px}
-.opt[disabled]{opacity:.45}
-.row2{display:flex;gap:9px}.row2 .opt{flex:1;text-align:center}
-.seal{background:linear-gradient(180deg,#8bd6c9,var(--water));color:#04171e;border:none;font-weight:700}
-.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
-.bidnow{background:#0b2531;border:1px solid var(--line);border-radius:11px;padding:11px;
-  text-align:center;font-size:15px;margin-bottom:12px}
+button.opt{width:100%;text-align:left;background:rgba(8,26,35,.72);color:var(--ink);
+  border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15.5px;
+  font-family:var(--cjk);cursor:pointer;line-height:1.45;transition:transform .1s}
+button.opt:active{transform:scale(.985);background:rgba(22,70,92,.9)}
+button.opt .s{display:block;font-size:12px;color:var(--muted);margin-top:3px;font-family:var(--ui)}
+button.opt[disabled]{opacity:.4}
+.row2{display:flex;gap:9px}.row2 button.opt{flex:1;text-align:center}
+button.seal{background:linear-gradient(180deg,#8bd6c9,var(--water));color:#04171e;border:none;font-weight:700}
+button.ghost{background:transparent;color:var(--muted)}
+.bidnow{background:rgba(8,26,35,.72);border:1px solid var(--line);border-radius:12px;
+  padding:12px;text-align:center;font-size:16px;margin-bottom:12px;font-family:var(--serif)}
 
-/* 結果 */
-.result{background:rgba(11,37,49,.9);border:1px solid var(--line);border-left:3px solid var(--water2);
-  border-radius:12px;padding:14px;margin-bottom:12px;white-space:pre-wrap;line-height:1.8;
-  font-size:14.5px;font-family:var(--cjk);animation:pop .35s ease both}
-.waiting{text-align:center;color:var(--muted);font-size:13.5px;padding:22px 12px;font-family:var(--cjk);line-height:1.9}
-.waiting .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--water2);
-  margin-right:6px;animation:blink 1.6s ease-in-out infinite}
-@keyframes blink{50%{opacity:.25}}
-.logbox{margin-top:4px}
-.logbox summary{color:var(--muted);font-size:12.5px;cursor:pointer;padding:6px 0}
-.logrow{font-size:12.5px;color:var(--muted);padding:5px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px}
-.err{background:#7e3a3a;color:#fff;border-radius:11px;padding:12px;text-align:center;font-size:14px;margin-bottom:12px}
-.status{text-align:center;font-size:11.5px;color:var(--muted);margin-top:14px}
-.locked{text-align:center;font-size:12.5px;color:var(--gold-hi);margin-top:6px}
+.result{background:rgba(9,28,37,.86);border:1px solid var(--line);
+  border-left:3px solid var(--water2);border-radius:12px;padding:15px;margin-bottom:12px;
+  white-space:pre-wrap;line-height:1.9;font-size:15px;font-family:var(--cjk);
+  color:var(--ink-dim);animation:pop .38s ease both}
+.result .tag{display:block;font-size:11px;color:var(--water2);margin-bottom:7px;
+  letter-spacing:.1em;font-family:var(--ui)}
+.waiting{text-align:center;color:var(--muted);font-size:13.5px;padding:24px 12px;
+  font-family:var(--cjk);line-height:2}
+.waiting .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--water2);margin-right:7px;animation:blink 1.7s ease-in-out infinite}
+@keyframes blink{50%{opacity:.22}}
+
+.chartbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg.traj{display:block;width:100%;height:auto}
+.legend{display:flex;gap:11px;justify-content:center;margin-top:9px;flex-wrap:wrap;
+  font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tl{margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
+.tlrow{display:flex;gap:9px;padding:6px 0;font-size:12.5px;align-items:baseline}
+.tlrow .rd{font-family:var(--serif);font-size:13px;color:var(--gold-hi);min-width:30px;flex:0 0 auto}
+.tlrow .tx{color:var(--ink-dim);font-family:var(--cjk);line-height:1.5}
+.tlrow .tx em{font-style:normal;color:var(--muted)}
+
+details summary{color:var(--muted);font-size:12.5px;cursor:pointer;padding:5px 0;
+  list-style:none;font-family:var(--cjk)}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ ";color:var(--water2)}
+details[open] summary::before{content:"▾ "}
+.logrow{font-size:12.5px;color:var(--muted);padding:6px 2px;border-bottom:1px dashed var(--line);
+  display:flex;justify-content:space-between;gap:10px;font-family:var(--cjk)}
+.err{background:rgba(126,58,58,.92);color:#fff;border-radius:12px;padding:13px;
+  text-align:center;font-size:14.5px;margin-bottom:12px;line-height:1.7;font-family:var(--cjk)}
+.status{text-align:center;font-size:11px;color:var(--muted);margin:14px 0 6px;font-family:var(--serif)}
+.locked{text-align:center;font-size:12.5px;color:var(--gold-hi);margin:-4px 0 12px;font-family:var(--cjk)}
+.offline{background:rgba(224,165,66,.16);border:1px solid rgba(224,165,66,.4);color:var(--gold-hi);
+  border-radius:11px;padding:9px;text-align:center;font-size:12.5px;margin-bottom:12px;font-family:var(--cjk)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -85,7 +157,6 @@ h1{font-family:var(--cjk);font-size:20px;letter-spacing:.1em;margin:2px 0}
   <header>
     <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
     <h1>人生手冊</h1>
-    <div class="sub" id="sub">連線中…</div>
     <div class="ripple"></div>
   </header>
   <div id="app"></div>
@@ -99,72 +170,33 @@ const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1
 const $ = id => document.getElementById(id);
 const qp = new URLSearchParams(location.search);
 const ID = qp.get('id') || '', TOKEN = qp.get('t') || '';
+const SKEY = 'bethesda_player_' + ID;      // 本機救生艇
 
-let VIEW = null;          // 伺服器最新狀態
-let LOCALPROMPT = null;   // 暗標籃咁嘅本地連續操作
-let LASTRESULT = '';      // 最近一次結果文字
-let busy = false;
+let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, ACTIONS = [], busy = false, everOK = false;
 
-const esc = s => String(s == null ? '' : s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g,
+  c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function walletHTML(v) {
-  const toks = v.wallet.tokens.filter(t => !t.hidden).map(t => `
-    <div class="tok ${t.masked ? 'mask' : ''}">
-      <div class="e">${t.emoji}</div>
-      <div class="n">${t.masked ? '？？？' : t.count}</div>
-      <div class="l">${t.masked ? '' : t.name}</div>
-    </div>`).join('');
-  const meta = [];
-  if (v.wallet.gold !== null) meta.push(`🥇 金幣 ${v.wallet.gold}`);
-  if (v.wallet.markers) meta.push(`🤝 互助 ${v.wallet.markers}`);
-  meta.push(`合共 ${v.wallet.total} 枚`);
-  const c = v.cards;
-  return `<div class="wallet">
-    <div class="wrow">
-      <span class="nm">${esc(v.name)}</span>
-      <span class="rk">${v.rank ? `#${v.rank} / ${v.fieldSize}` : ''}</span>
-    </div>
-    <div class="toks">${toks}</div>
-    <div class="meta">${meta.map(m => `<span>${m}</span>`).join('')}</div>
-    <div class="cards">
-      <b>性格</b> ${esc((c.personality || []).join('、')) || '—'}　<b>原生</b> ${esc(c.environment) || '—'}<br>
-      <b>渴求</b> ${esc(c.desire) || '—'}　<b>回合</b> ${esc(v.round)}
-    </div>
-  </div>
-  ${v.locked ? '<div class="locked">🔒 本回合已入分（一回合只可以揀一個站）</div>' : ''}`;
+// ═══ 救生艇：本機保存／還原（防唔小心 refresh 或熄咗）═══
+function save() {
+  try {
+    localStorage.setItem(SKEY, JSON.stringify({
+      view: VIEW, localPrompt: LOCALPROMPT, lastResult: LASTRESULT, ts: Date.now() }));
+  } catch {}
+}
+function restore() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SKEY) || 'null');
+    if (!d || Date.now() - d.ts > 86400000) return false;   // 超過一日就唔還原
+    VIEW = d.view; LOCALPROMPT = d.localPrompt; LASTRESULT = d.lastResult;
+    return !!VIEW;
+  } catch { return false; }
 }
 
-function promptHTML(p) {
-  if (!p) return '';
-  if (p.kind === 'bid') {
-    const enc = encB(p.current.basket);
-    const adds = p.options.map(o => btn('opt', { type: 'bid_add', color: o.value, basket: enc },
-      `${esc(o.label)}<span class="s">${esc(o.sub)}</span>`)).join('');
-    return `<div class="prompt">
-      <h2>📈 ${esc(p.title)}</h2>
-      <div class="body">${esc(p.body)}</div>
-      <div class="bidnow">你而家嘅出價：<b>${esc(p.current.human)}</b>（共 ${p.current.total} 枚）</div>
-      <div class="opts">${adds}
-        <div class="row2">
-          ${btn('opt ghost', { type: 'bid_clear' }, '🧹 清空')}
-          ${btn('opt seal', { type: 'bid_seal', basket: enc }, `✅ 封標（${p.current.total}枚）`, !p.canSeal)}
-        </div>
-      </div></div>`;
-  }
-  const opts = p.options.map(o => btn('opt', actOf(p, o),
-    `${esc(o.label)}${o.sub ? `<span class="s">${esc(o.sub)}</span>` : ''}`)).join('');
-  const icon = p.kind === 'station' ? '🧭' : p.kind === 'any' ? '🎯' : '📖';
-  return `<div class="prompt"><h2>${icon} ${esc(p.title)}</h2>
-    ${p.body ? `<div class="body">${esc(p.body)}</div>` : ''}
-    <div class="opts">${opts}</div></div>`;
-}
-
-// ── 掣工廠：action 存落 ACTIONS 陣列，掣只帶一個 index ──
-//    （唔再將 JSON 塞入 onclick attribute — 引號會截斷 attribute，係之前撳唔到嘅原因）
-let ACTIONS = [];
+// ═══ 掣工廠（action 存陣列，掣只帶 index — 唔用 inline onclick）═══
 function btn(cls, action, inner, disabled) {
   const i = ACTIONS.push(action) - 1;
-  return `<button class="${cls}" data-act="${i}"${disabled ? ' disabled' : ''}>${inner}</button>`;
+  return '<button class="' + cls + '" data-act="' + i + '"' + (disabled ? ' disabled' : '') + '>' + inner + '</button>';
 }
 const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).join('.');
 function actOf(p, o) {
@@ -174,64 +206,173 @@ function actOf(p, o) {
   return {};
 }
 
+function badgeHTML(v) {
+  return '<div class="badge"><span class="no">' + esc(v.id) + '</span>' +
+    '<span class="who"><span class="n">' + esc(v.name) + '</span><br>' +
+    '<span class="t">入分時，同站長講呢個號碼</span></span></div>';
+}
+
+function walletHTML(v) {
+  const toks = v.wallet.tokens.filter(t => !t.hidden).map(t =>
+    '<div class="tok k-' + t.key + (t.masked ? ' mask' : '') + '">' +
+      '<div class="e">' + t.emoji + '</div>' +
+      '<div class="n">' + (t.masked ? '？？' : t.count) + '</div>' +
+      '<div class="l">' + (t.masked ? '' : esc(t.name)) + '</div></div>').join('');
+  const meta = [];
+  if (v.wallet.gold !== null) meta.push('🥇 ' + v.wallet.gold);
+  if (v.wallet.markers) meta.push('🤝 ' + v.wallet.markers);
+  meta.push('合共 ' + v.wallet.total + ' 枚');
+  const c = v.cards;
+  return '<div class="card"><div class="wrow">' +
+    '<h2 style="margin:0">👛 我的錢包 <span class="hint">' + esc(v.round) + '</span></h2>' +
+    '<span class="rk">' + (v.rank ? '#' + v.rank : '') +
+      '<small>' + (v.rank ? ' / ' + v.fieldSize : '') + '</small></span></div>' +
+    '<div class="toks">' + toks + '</div>' +
+    '<div class="meta">' + meta.map(m => '<span>' + m + '</span>').join('') + '</div>' +
+    '<div class="cardsline"><b>性格</b> ' + (esc((c.personality || []).join('、')) || '—') +
+      '　<b>原生</b> ' + (esc(c.environment) || '—') + '<br>' +
+      '<b>渴求</b> ' + (esc(c.desire) || '—') + '</div></div>' +
+    (v.locked ? '<div class="locked">🔒 本回合已入分（一回合只可以揀一個站）</div>' : '');
+}
+
+function promptHTML(p) {
+  if (!p) return '';
+  if (p.kind === 'bid') {
+    const enc = encB(p.current.basket);
+    const adds = p.options.map(o => btn('opt', { type: 'bid_add', color: o.value, basket: enc },
+      esc(o.label) + '<span class="s">' + esc(o.sub) + '</span>')).join('');
+    return '<div class="prompt"><h2>📈 ' + esc(p.title) + '</h2>' +
+      '<div class="body">' + esc(p.body) + '</div>' +
+      '<div class="bidnow">' + esc(p.current.human) + '　<b>共 ' + p.current.total + ' 枚</b></div>' +
+      '<div class="opts">' + adds + '<div class="row2">' +
+        btn('opt ghost', { type: 'bid_clear' }, '🧹 清空') +
+        btn('opt seal', { type: 'bid_seal', basket: enc }, '✅ 封標（' + p.current.total + '枚）', !p.canSeal) +
+      '</div></div></div>';
+  }
+  const opts = p.options.map(o => btn('opt', actOf(p, o),
+    esc(o.label) + (o.sub ? '<span class="s">' + esc(o.sub) + '</span>' : ''))).join('');
+  const icon = p.kind === 'station' ? '🧭' : p.kind === 'any' ? '🎯' : '📖';
+  return '<div class="prompt"><h2>' + icon + ' ' + esc(p.title) + '</h2>' +
+    (p.body ? '<div class="body">' + esc(p.body) + '</div>' : '') +
+    '<div class="opts">' + opts + '</div></div>';
+}
+
+// ═══ 軌跡圖（純 SVG，零外部 library）═══
+const SER = [
+  { k: 'green', c: '#4FB061', n: '🟢' }, { k: 'red', c: '#E05555', n: '🔴' },
+  { k: 'purple', c: '#9B7FD4', n: '🟣' }, { k: 'yellow', c: '#EFCB5A', n: '🟡' },
+  { k: 'blue', c: '#4A8FE8', n: '🔵' },
+];
+function trajHTML(v) {
+  const h = (v.history || []).filter(x => x && x.round);
+  if (h.length < 2) return '';
+  const rn = parseInt(String(v.round).replace(/\D/g, ''), 10) || 1;
+  const series = SER.filter(s => s.k !== 'blue' || rn >= 3);      // 🔵 R3 前唔顯示（保密）
+  const W = 500, H = 190, PL = 30, PR = 12, PT = 14, PB = 26;
+  const maxV = Math.max(4, ...h.map(p => Math.max.apply(null, series.map(s => p[s.k] || 0))));
+  const x = i => PL + (W - PL - PR) * (h.length === 1 ? 0.5 : i / (h.length - 1));
+  const y = val => PT + (H - PT - PB) * (1 - val / maxV);
+  const grid = [0, 0.5, 1].map(f => {
+    const yy = PT + (H - PT - PB) * (1 - f);
+    return '<line x1="' + PL + '" y1="' + yy + '" x2="' + (W - PR) + '" y2="' + yy +
+      '" stroke="rgba(244,237,224,.13)" stroke-width="1"/>' +
+      '<text x="' + (PL - 6) + '" y="' + (yy + 4) + '" fill="#8FA7B0" font-size="10" text-anchor="end">' +
+      Math.round(maxV * f) + '</text>';
+  }).join('');
+  const lines = series.map(s => {
+    const pts = h.map((p, i) => x(i).toFixed(1) + ',' + y(p[s.k] || 0).toFixed(1)).join(' ');
+    const dots = h.map((p, i) => '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(p[s.k] || 0).toFixed(1) +
+      '" r="3" fill="' + s.c + '"/>').join('');
+    return '<polyline points="' + pts + '" fill="none" stroke="' + s.c +
+      '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".92"/>' + dots;
+  }).join('');
+  const xlab = h.map((p, i) => '<text x="' + x(i).toFixed(1) + '" y="' + (H - 8) +
+    '" fill="#8FA7B0" font-size="10" text-anchor="middle">' +
+    esc(p.round.replace('（而家）', '·今')) + '</text>').join('');
+  const leg = series.map(s => '<span><i style="background:' + s.c + '"></i>' + s.n + '</span>').join('');
+
+  const tl = (v.choices || []).slice(-10).map(c => {
+    const label = c.act === '🧭選站' ? '去咗 <em>' + esc(c.note) + '</em>'
+      : c.act === '💰暗標' ? '暗標出價 <em>' + esc(c.note) + '</em>'
+      : c.act === '💰開標' ? '<em>' + esc(c.note) + '</em>'
+      : esc(c.act.replace('🎭', '')) + ' — <em>' + esc(c.note) + '</em>';
+    return '<div class="tlrow"><span class="rd">' + esc(c.round) + '</span><span class="tx">' + label + '</span></div>';
+  }).join('');
+
+  return '<div class="card"><h2>📈 我的軌跡 <span class="hint">代幣點樣行到今日</span></h2>' +
+    '<div class="chartbox"><svg class="traj" viewBox="0 0 ' + W + ' ' + H +
+      '" preserveAspectRatio="xMidYMid meet" role="img">' + grid + lines + xlab + '</svg></div>' +
+    '<div class="legend">' + leg + '</div>' +
+    (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
+}
+
 function render() {
   if (!VIEW) return;
   ACTIONS = [];
   const p = LOCALPROMPT || VIEW.pending;
   const logs = (VIEW.log || []).slice().reverse();
-  $('sub').textContent = `${VIEW.id}　${VIEW.round}`;
   $('app').innerHTML =
+    (everOK ? '' : '<div class="offline">📵 而家連唔到伺服器，顯示緊上次嘅紀錄。有網會自動更新。</div>') +
+    badgeHTML(VIEW) +
     walletHTML(VIEW) +
-    (LASTRESULT ? `<div class="result">${esc(LASTRESULT)}</div>` : '') +
-    (p ? promptHTML(p) : `<div class="waiting"><span class="dot"></span>而家冇嘢要你做。<br>留住呢版，MC 一開新環節就會自動彈出嚟。</div>`) +
-    (logs.length ? `<details class="logbox"><summary>📜 本回合紀錄（${logs.length}）</summary>
-      ${logs.map(l => `<div class="logrow"><span>${esc(l.act)}</span><span>${esc(l.note)}</span></div>`).join('')}
-    </details>` : '');
+    (LASTRESULT ? '<div class="result"><span class="tag">最近一次結果</span>' + esc(LASTRESULT) + '</div>' : '') +
+    (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
+       '而家冇嘢要你做。<br>留住呢一版，MC 一開新環節就會自動彈出嚟。</div></div>') +
+    trajHTML(VIEW) +
+    (logs.length ? '<div class="card"><details><summary>📜 本回合完整紀錄（' + logs.length + '）</summary>' +
+      logs.map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
+      '</details></div>' : '');
+  save();
 }
 
 async function poll() {
   if (busy) return;
   try {
-    const r = await fetch(`${BASE}/me?id=${encodeURIComponent(ID)}&t=${encodeURIComponent(TOKEN)}`, { cache: 'no-store' });
+    const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store' });
     const d = await r.json();
-    if (!d.ok) { $('app').innerHTML = `<div class="err">${esc(d.msg || '連唔到')}</div>`; return; }
-    // 伺服器有新 prompt 就蓋過本地暫存
+    if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連唔到') + '</div>'; return; }
     if (d.view.pending && (!VIEW || JSON.stringify(d.view.pending) !== JSON.stringify(VIEW.pending))) LOCALPROMPT = null;
-    VIEW = d.view; render();
-    $('status').textContent = `更新於 ${new Date().toLocaleTimeString('zh-HK')}`;
-  } catch (e) {
-    $('status').textContent = '連線唔到，重試中…';
+    VIEW = d.view; everOK = true; render();
+    $('status').textContent = '更新於 ' + new Date().toLocaleTimeString('zh-HK');
+  } catch {
+    $('status').textContent = '連線唔到，重試中⋯';
+    if (VIEW) { everOK = false; render(); }
   }
 }
 
 async function act(a) {
   if (busy) return; busy = true;
-  const btns = document.querySelectorAll('.opt'); btns.forEach(b => b.disabled = true);
+  document.querySelectorAll('button[data-act]').forEach(b => { b.disabled = true; });
   try {
-    const r = await fetch(`${BASE}/act`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: ID, token: TOKEN, action: a }) });
     const d = await r.json();
-    if (d.view) VIEW = d.view;
-    LASTRESULT = d.text || '';
-    LOCALPROMPT = d.immediate || null;      // 暗標籃／任意代幣連續操作留喺本地
+    if (d.view) { VIEW = d.view; everOK = true; }
+    if (d.text) LASTRESULT = d.text;
     if (!d.ok && d.msg) LASTRESULT = d.msg;
+    LOCALPROMPT = d.immediate || null;
     render();
-  } catch (e) {
+  } catch {
     LASTRESULT = '網絡唔穩，撳多次。'; render();
   } finally { busy = false; }
 }
-// 事件委派：一個 listener 搞掂所有掣（掣係 render 出嚟嘅，唔可以逐粒綁）
+
 document.addEventListener('click', e => {
   const b = e.target.closest('button[data-act]');
   if (!b || b.disabled) return;
   const a = ACTIONS[parseInt(b.dataset.act, 10)];
   if (a) act(a);
 });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+window.addEventListener('pagehide', save);
+window.addEventListener('online', poll);
 
 if (!ID || !TOKEN) {
   $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
-} else { poll(); setInterval(poll, 4000); }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+} else {
+  if (restore()) render();          // 先即刻畫返上次嘅嘢（refresh 唔會白畫面）
+  poll(); setInterval(poll, 4000);
+}
 </script>
 </body>
 </html>
