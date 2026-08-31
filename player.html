@@ -212,7 +212,7 @@ const qp = new URLSearchParams(location.search);
 const ID = qp.get('id') || '', TOKEN = qp.get('t') || '';
 const SKEY = 'bethesda_player_' + ID;
 
-let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, ACTIONS = [], busy = false;
+let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, RESULTROUND = null, ACTIONS = [], busy = false;
 let everOK = false, PREVTOK = null;
 
 const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g,
@@ -222,13 +222,13 @@ const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch {
 // ═══ 救生艇 ═══
 function save() {
   try { localStorage.setItem(SKEY, JSON.stringify({
-    view: VIEW, localPrompt: LOCALPROMPT, lastResult: LASTRESULT, ts: Date.now() })); } catch {}
+    view: VIEW, localPrompt: LOCALPROMPT, lastResult: LASTRESULT, resultRound: RESULTROUND, ts: Date.now() })); } catch {}
 }
 function restore() {
   try {
     const d = JSON.parse(localStorage.getItem(SKEY) || 'null');
     if (!d || Date.now() - d.ts > 86400000) return false;
-    VIEW = d.view; LOCALPROMPT = d.localPrompt; LASTRESULT = d.lastResult;
+    VIEW = d.view; LOCALPROMPT = d.localPrompt; LASTRESULT = d.lastResult; RESULTROUND = d.resultRound || null;
     return !!VIEW;
   } catch { return false; }
 }
@@ -240,7 +240,7 @@ function btn(cls, action, inner, disabled) {
 const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).join('.');
 function actOf(p, o) {
   if (p.kind === 'station') return { type: 'station', station: o.value };
-  if (p.kind === 'interactive') return { type: 'interactive', ref: p.ref, choice: o.value };
+  if (p.kind === 'interactive') return { type: 'interactive', ref: p.ref, choice: o.value, top3: !!p.top3 };
   return {};
 }
 
@@ -254,9 +254,14 @@ const TOKCOL = { green:'#4C7A52', red:'#BE5A4C', purple:'#7A6099', yellow:'#9E70
 // 主導代幣（R3 前唔計 🔵，保密）
 function dominant(t, roundNum) {
   const keys = ['green','red','purple','yellow'].concat(roundNum >= 3 ? ['blue'] : []);
-  let best = null, bv = 0;
-  for (const k of keys) if ((t[k] || 0) > bv) { bv = t[k] || 0; best = k; }
-  return bv > 0 ? best : null;
+  let best = null, bv = 0, ties = 0;
+  for (const k of keys) {
+    const v = t[k] || 0;
+    if (v > bv) { bv = v; best = k; ties = 1; }
+    else if (v === bv && v > 0) ties++;
+  }
+  if (bv <= 0) return null;          // 未有任何代幣
+  return ties > 1 ? '__tie__' : best; // 兩色打和 = 仲喺度拉扯
 }
 
 // 生成一個人物 SVG。size: 'big' | 'mini'
@@ -345,6 +350,9 @@ function avatarSVG(tokens, roundNum, opts) {
     P.push(`<ellipse cx="100" cy="${206+slouch}" rx="46" ry="7" fill="#C9BFAE" opacity=".45"/>`);
   }
   // 主導代幣道具
+  if (dom === '__tie__') P.push(`<g opacity=".5" stroke="${ink}" stroke-width="1.6" fill="none">
+      <path d="M52 ${118+slouch} l-14 -8 M52 ${118+slouch} l-14 8"/>
+      <path d="M148 ${118+slouch} l14 -8 M148 ${118+slouch} l14 8"/></g>`);
   if (dom === 'green')  P.push(`<rect x="128" y="${142+slouch}" width="22" height="16" rx="2" fill="${TOKCOL.green}" fill-opacity=".8" stroke="${ink}" stroke-width="1.6"/>`);
   if (dom === 'red')    P.push(`<g transform="translate(150 ${112+slouch}) scale(.62)"><ellipse cx="0" cy="0" rx="17" ry="19" fill="#F3E2D2" stroke="${ink}" stroke-width="3"/><path d="M-16 34 C-16 12 16 12 16 34 Z" fill="${TOKCOL.red}" fill-opacity=".7" stroke="${ink}" stroke-width="3"/></g>`);
   if (dom === 'purple') P.push(`<g fill="none" stroke="${TOKCOL.purple}" stroke-width="1.7" opacity=".62">
@@ -364,7 +372,8 @@ function avatarSVG(tokens, roundNum, opts) {
     <defs>${filt}</defs><g filter="url(#${uid})">${P.join('')}</g></svg>`;
 }
 
-const DOMLABEL = { green:'事業行頭', red:'關係行頭', purple:'內在行頭', yellow:'享樂行頭', blue:'信仰行頭' };
+const DOMLABEL = { green:'事業行頭', red:'關係行頭', purple:'內在行頭', yellow:'享樂行頭', blue:'信仰行頭',
+  __tie__:'兩邊拉扯，未分高下' };
 const WEARLABEL = { 1:'校服', 2:'連帽衫', 3:'恤衫', 4:'西裝', 5:'風衣（濕透）', 6:'便服' };
 
 function growthHTML(v) {
@@ -390,7 +399,7 @@ function growthHTML(v) {
   return '<div class="card"><h2>🧍 我而家係咁 <span class="hint">' + esc(v.round) + '</span></h2>' +
     '<div class="avatarwrap">' + avatarSVG(curTok, rn, {}) + '</div>' +
     '<div class="avcap">' + esc(WEARLABEL[rn] || '') +
-      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 仲未有方向') + '</div>' +
+      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 一張白紙，未落過注') + '</div>' +
     (steps ? '<div class="growth">' + steps + '</div>' : '') +
     (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
 }
@@ -442,6 +451,9 @@ function walletHTML(v) {
 
 function promptHTML(p) {
   if (!p) return '';
+  if (p.kind === 'info') {
+    return '<div class="prompt"><h2>ℹ️ ' + esc(p.title) + '</h2><div class="body">' + esc(p.body) + '</div></div>';
+  }
   if (p.kind === 'chosen') {                       // 已選站 → 可以改揀
     return '<div class="prompt"><h2>🧭 ' + esc(p.title) + '</h2>' +
       '<div class="chosenbox"><span class="cv">' + esc(p.body) + '</span>' +
@@ -479,9 +491,12 @@ function render() {
     stageHTML(VIEW) +
     badgeHTML(VIEW) +
     walletHTML(VIEW) +
-    (LASTRESULT ? '<div class="result"><span class="tag">最近一次結果</span>' + esc(LASTRESULT) + '</div>' : '') +
+    (VIEW.message && VIEW.message !== LASTRESULT && VIEW.messageRound === VIEW.round
+      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' 訊息</span>' + esc(VIEW.message) + '</div>' : '') +
+    (LASTRESULT && RESULTROUND === VIEW.round
+      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' · 你嘅選擇帶嚟嘅嘢</span>' + esc(LASTRESULT) + '</div>' : '') +
     (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
-       '而家冇嘢要你做。<br>留住呢一版，MC 一開新環節就會自動彈出嚟。</div></div>') +
+       '而家冇嘢要你做。<br>留住呢一版——MC 一開新環節，4 秒內會自動彈出嚟。</div></div>') +
     growthHTML(VIEW) +
     (logs.length ? '<div class="card"><details><summary>📜 本回合完整紀錄（' + logs.length + '）</summary>' +
       logs.map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
@@ -496,6 +511,8 @@ async function poll() {
     const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store' });
     const d = await r.json();
     if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連唔到') + '</div>'; return; }
+    if (VIEW && VIEW.round !== d.view.round) { LASTRESULT = null; RESULTROUND = null; LOCALPROMPT = null; }   // ★ 換回合即清
+    if (!d.view.pending) LOCALPROMPT = null;                                                                  // ★ 伺服器收咗 prompt → 本地都收
     if (d.view.pending && (!VIEW || JSON.stringify(d.view.pending) !== JSON.stringify(VIEW.pending))) LOCALPROMPT = null;
     VIEW = d.view; everOK = true; render();
     $('status').textContent = '更新於 ' + new Date().toLocaleTimeString('zh-HK');
@@ -513,8 +530,8 @@ async function act(a) {
       body: JSON.stringify({ id: ID, token: TOKEN, action: a }) });
     const d = await r.json();
     if (d.view) { VIEW = d.view; everOK = true; }
-    if (d.text) LASTRESULT = d.text;
-    if (!d.ok && d.msg) LASTRESULT = d.msg;
+    if (d.text) { LASTRESULT = d.text; RESULTROUND = d.view ? d.view.round : (VIEW && VIEW.round); }
+    if (!d.ok && d.msg) { LASTRESULT = d.msg; RESULTROUND = VIEW && VIEW.round; }
     LOCALPROMPT = d.immediate || null;
     render(); buzz(22);
   } catch {
