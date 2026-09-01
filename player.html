@@ -491,15 +491,15 @@ function render() {
     stageHTML(VIEW) +
     badgeHTML(VIEW) +
     walletHTML(VIEW) +
-    (VIEW.message && VIEW.message !== LASTRESULT && VIEW.messageRound === VIEW.round
-      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' 訊息</span>' + esc(VIEW.message) + '</div>' : '') +
     (LASTRESULT && RESULTROUND === VIEW.round
       ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' · 你嘅選擇帶嚟嘅嘢</span>' + esc(LASTRESULT) + '</div>' : '') +
+    (VIEW.message && VIEW.message !== LASTRESULT && VIEW.messageRound === VIEW.round && !(LASTRESULT && RESULTROUND === VIEW.round)
+      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' 訊息</span>' + esc(VIEW.message) + '</div>' : '') +
     (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
        '而家冇嘢要你做。<br>留住呢一版——MC 一開新環節，4 秒內會自動彈出嚟。</div></div>') +
     growthHTML(VIEW) +
-    (logs.length ? '<div class="card"><details><summary>📜 本回合完整紀錄（' + logs.length + '）</summary>' +
-      logs.map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
+    (logs.length ? '<div class="card"><details><summary>📜 ' + esc(VIEW.round) + ' 紀錄（' + logs.length + '）</summary>' +
+      logs.slice(0, 8).map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
       '</details></div>' : '');
   PREVTOK = Object.fromEntries((VIEW.wallet?.tokens || []).map(t => [t.key, t.count]));
   save();
