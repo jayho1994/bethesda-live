@@ -496,7 +496,7 @@ function render() {
     (VIEW.message && VIEW.message !== LASTRESULT && VIEW.messageRound === VIEW.round && !(LASTRESULT && RESULTROUND === VIEW.round)
       ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' 訊息</span>' + esc(VIEW.message) + '</div>' : '') +
     (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
-       '而家冇嘢要你做。<br>留住呢一版——MC 一開新環節，4 秒內會自動彈出嚟。</div></div>') +
+       '而家冇嘢要你做。<br>留住呢一版——MC 一開新環節，幾秒內會自動彈出嚟。</div></div>') +
     growthHTML(VIEW) +
     (logs.length ? '<div class="card"><details><summary>📜 ' + esc(VIEW.round) + ' 紀錄（' + logs.length + '）</summary>' +
       logs.slice(0, 8).map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
@@ -560,7 +560,7 @@ if (!ID || !TOKEN) {
   $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
 } else {
   if (restore()) render();
-  poll(); setInterval(poll, 4000);
+  poll(); setInterval(poll, 5000);
 }
 </script>
 </body>
