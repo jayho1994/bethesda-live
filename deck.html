@@ -24,6 +24,25 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 .layer{position:absolute;inset:0}
 .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .9s var(--ease)}
 .bg.on{opacity:1}
+/* ═ 油畫層（Gamma 生成；右三分一留白畀文字）═ */
+.art{position:absolute;inset:0;background-size:cover;background-position:left center;opacity:0;transition:opacity 1.1s var(--ease);transform:scale(1.04);}
+.art.on{opacity:1;animation:kenburns 26s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1.04) translateX(0)}to{transform:scale(1.09) translateX(-1.5%)}}
+.art::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(240,238,230,0) 0%,rgba(240,238,230,.08) 38%,rgba(240,238,230,.86) 56%,rgba(240,238,230,.96) 100%)}
+.art.dark::after{background:linear-gradient(90deg,rgba(20,18,16,0) 0%,rgba(20,18,16,.15) 38%,rgba(30,26,22,.86) 56%,rgba(30,26,22,.95) 100%)}
+#frame.with-art .slide{padding:6% 6% 8% 50%;align-items:flex-start;text-align:left}
+#frame.with-art .slide .body{text-align:left;max-width:100%}
+#frame.with-art .slide .rule{margin-left:0}
+#frame.with-art .grid{justify-content:flex-start;max-width:100%}
+#frame.with-art .st{min-width:18vh;padding:2.2vh 2.4vh}
+#frame.with-art .opts{width:100%}
+#frame.with-art .podium,#frame.with-art .wts,#frame.with-art .cmp{align-self:center}
+#frame.dark-art{color:#F4EDE0}
+#frame.dark-art .slide h1,#frame.dark-art .slide .body{color:#F4EDE0}
+#frame.dark-art .slide .sub,#frame.dark-art .rank{color:#E8B48F}
+#frame.dark-art .opt,#frame.dark-art .st,#frame.dark-art .row{background:rgba(40,34,30,.82);color:#F4EDE0;border-color:rgba(244,237,224,.14)}
+#frame.dark-art #stagebar b,#frame.dark-art #foot{color:#F4EDE0}
 /* ═ 常駐 overlay ═ */
 #stagebar{position:absolute;left:3.2%;top:3.5%;font-family:var(--serif);font-size:1.6vh;color:var(--clay-deep);letter-spacing:.1em;opacity:.85;z-index:30;
   display:flex;gap:1.2vh;align-items:baseline}
@@ -123,6 +142,7 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 </head>
 <body>
 <div id="stage"><div id="frame">
+  <div class="art" id="artA"></div><div class="art" id="artB"></div>
   <div class="bg" id="bgA"></div><div class="bg" id="bgB"></div>
   <div class="layer" id="content"></div>
   <div class="flash" id="flash"></div>
@@ -134,6 +154,30 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 // ── ✏️ Lambda URL ──
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 const SLIDES_DIR = 'slides/';        // Canva 匯出 PNG 放呢度：slides/S03_R1_sit.png；揭示：slides/S25_R6_reveal_p3.png
+// ── 油畫底圖（Gamma 生成，油畫風、冇真人）。本地 art/<key>.jpg 優先，冇就用 CDN ──
+const ART = {
+  title:     'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/w45FHYVDICi0rL6IvZMKB/oAuyE85Qvmeh-fsA4Qv9W.jpg',
+  R1:        'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/Zpl7w3d4eibJQR3BiJlgJ/AOtMEldZ5j0vlcchxBhuy.jpg',
+  R2:        'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/jFe2CtDBY9xVTB7ZQHAwb/W5EVnvvXdLDcSF2fhCa-m.jpg',
+  R3:        'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/HQTXPjIa6GRCK2xJ22jTw/lsQgxZmHsZ-RWdljNKWv-.jpg',
+  R4:        'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/AGD9n2mEoA6lt4goOyq6Y/_AIyudbizQsd6TyJYKEpg.jpg',
+  storm:     'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/20cGUrW2B6uaSYitmrfQi/j5xVZGdBmnIRHqGiSh9Y8.jpg',
+  R6:        'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/CoNt8Fohv3H19oQf6nszI/oxjL8yELWU1A5HMJAHkxu.jpg',
+  auction:   'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/X2Vszpvsk4bX10uYNH7M1/UJmOWYm0F2lbcv0-JMvl5.jpg',
+  aftermath: 'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/KhzoSjztHkwqUs8JM17Q9/wmk5sPVRCJU4ou9IxaDG1.jpg',
+  reveal:    'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/wu29JgtblK9KyP4Id3mYc/kSftVEHzUuWZx4zY4jS7C.jpg',
+};
+const DARK_ART = new Set(['storm', 'reveal']);   // 深色油畫 → 文字轉淺色
+function artKeyFor(s, st) {
+  if (s.kind === 'title') return 'title';
+  if (s.kind === 'storm') return 'storm';
+  if (s.kind === 'auction') return 'auction';
+  if (s.kind === 'aftermath') return 'aftermath';
+  if (s.kind === 'reveal') return 'reveal';
+  if (s.round === 'R5') return s.kind === 'round' ? 'storm' : 'aftermath';
+  if (s.round === 'R6') return 'R6';
+  return s.round || 'title';
+}
 // ─────────────
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
@@ -148,6 +192,16 @@ function setBg(url) {
   if (!url) { next.classList.remove('on'); prev.classList.remove('on'); return Promise.resolve(false); }
   return new Promise(res => { const img = new Image(); img.onload = () => { next.style.backgroundImage = `url(${url})`; next.classList.add('on'); prev.classList.remove('on'); res(true); };
     img.onerror = () => { next.classList.remove('on'); prev.classList.remove('on'); res(false); }; img.src = url; });
+}
+let artFlip = false;
+function loadImg(url) { return new Promise(res => { const i = new Image(); i.onload = () => res(true); i.onerror = () => res(false); i.src = url; }); }
+async function setArt(key) {
+  const a = $('artA'), b = $('artB'); const next = artFlip ? a : b, prev = artFlip ? b : a; artFlip = !artFlip;
+  const local = 'art/' + key + '.jpg';
+  const url = (await loadImg(local)) ? local : (ART[key] && await loadImg(ART[key]) ? ART[key] : null);
+  if (!url) { next.classList.remove('on'); prev.classList.remove('on'); return false; }
+  next.style.backgroundImage = `url(${url})`; next.classList.toggle('dark', DARK_ART.has(key)); next.classList.add('on'); prev.classList.remove('on');
+  return true;
 }
 const stagger = (sel, base = .08) => document.querySelectorAll(sel).forEach((el, i) => el.style.animationDelay = (base * i + .15) + 's');
 
@@ -187,6 +241,10 @@ async function show(st, force) {
   $('board').classList.toggle('on', st.mode === 'board');
   const bgUrl = SLIDES_DIR + s.id + (s.kind === 'reveal' ? `_p${st.reveal || 1}` : '') + '.png';
   const hasBg = await setBg(bgUrl);
+  const artKey = artKeyFor(s, st);
+  const hasArt = hasBg ? (setArt('__none__'), false) : await setArt(artKey);
+  $('frame').classList.toggle('with-art', hasArt);
+  $('frame').classList.toggle('dark-art', hasArt && DARK_ART.has(artKey));
   const c = $('content'); c.className = 'layer ' + (ENTER[s.kind] || 'enter-fade');
   if (s.kind === 'event') { $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go'); }
   c.innerHTML = hasBg && s.kind !== 'reveal' ? '' : html(s, st);   // 有 Canva 底圖就唔畫 fallback（揭示頁例外：數據要 overlay）
