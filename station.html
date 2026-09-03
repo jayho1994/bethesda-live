@@ -2,48 +2,63 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
 <title>站點 Check-in · 畢士大版</title>
 <style>
-  :root{--bg:#0B1F2A;--card:#12384a;--ink:#F2EAD9;--muted:#8FA7B0;--gold:#F4CE7A;--water:#2EC4B6;--red:#D64545;--line:rgba(242,234,217,.14)}
-  *{box-sizing:border-box}body{margin:0;font-family:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-  header{padding:14px;text-align:center;border-bottom:1px solid var(--line)}
-  header h1{margin:0;font-size:19px;letter-spacing:.1em} header .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  :root{--paper:#F0EEE6;--card:rgba(255,254,250,.86);--ink:#141413;--ink2:#3D3D3A;--muted:#6B6963;--faint:#A8A59D;
+    --clay:#D97757;--clay-deep:#9E4529;--gold:#C9962B;--red:#BE5A4C;--line:rgba(20,20,19,.11);--line2:rgba(20,20,19,.06);
+    --serif:"Cormorant Garamond","Songti TC","Noto Serif CJK TC",serif;--cjk:"Songti TC","Noto Serif CJK TC","Noto Serif TC","PingFang TC",serif;
+    --ui:-apple-system,"PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",system-ui,sans-serif}
+  *{box-sizing:border-box}body{margin:0;font-family:var(--ui);color:var(--ink);
+  background-color:#F0EEE6;
+  background-image:
+    linear-gradient(90deg,rgba(240,238,230,.55) 0%,rgba(240,238,230,.86) 45%,rgba(240,238,230,.96) 100%),
+    url('art/title.jpg'),url('https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/w45FHYVDICi0rL6IvZMKB/oAuyE85Qvmeh-fsA4Qv9W.jpg');
+  background-size:cover,cover,cover;background-position:left center;background-attachment:fixed;}
+  header{padding:14px;text-align:center;border-bottom:1px solid var(--line);background:rgba(240,238,230,.6);backdrop-filter:blur(6px)}
+  header h1{margin:0;font-size:20px;letter-spacing:.14em;font-family:var(--cjk);font-weight:600} header .sub{color:var(--muted);font-size:12.5px;margin-top:4px;font-family:var(--cjk)}
   .cfg{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px}
-  .cfg select,.cfg button{background:#0b2531;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:15px}
+  .cfg select,.cfg button{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:15px;font-family:var(--ui);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 rgba(20,20,19,.06)}
   .searchbar{display:flex;gap:8px;padding:4px 14px 0;align-items:center}
-  .searchbar input{flex:1;background:#0b2531;color:var(--ink);border:1px solid var(--line);
-    border-radius:12px;padding:13px 14px;font-size:17px;font-family:inherit;-webkit-appearance:none}
-  .searchbar input:focus{outline:none;border-color:var(--water)}
-  .searchbar .clr{background:#0b2531;color:var(--muted);border:1px solid var(--line);
-    border-radius:12px;padding:13px 15px;font-size:15px}
-  .qhint{padding:7px 16px 0;font-size:12.5px;color:var(--muted);min-height:18px}
-  .tile.hit{border-color:var(--water);box-shadow:0 0 0 2px rgba(46,196,182,.35)}
-  .tile .num{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:600;color:var(--gold);line-height:1}
+  .searchbar input{flex:1;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:17px;font-family:inherit;-webkit-appearance:none}
+  .searchbar input:focus{outline:none;border-color:var(--clay)}
+  .searchbar .clr{background:var(--card);color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15px}
+  .qhint{padding:7px 16px 0;font-size:12.5px;color:var(--muted);min-height:18px;font-family:var(--serif)}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:14px;padding-bottom:70px}
-  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;user-select:none}
-  .tile:active{transform:scale(.96);background:#16465c}
-  .tile .pid{font-size:13px;color:var(--muted)} .tile .pname{font-size:18px;font-weight:600;margin-top:2px;line-height:1.2}
-  .status{position:fixed;left:0;right:0;bottom:0;background:#08202b;border-top:1px solid var(--line);padding:10px 14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;z-index:5}
-  .queue.on{color:var(--gold)}
-  .modal{position:fixed;inset:0;background:rgba(4,15,20,.85);display:none;align-items:center;justify-content:center;padding:18px;z-index:8}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;user-select:none;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 3px 0 rgba(20,20,19,.08),0 6px 14px rgba(20,20,19,.07);transition:transform .09s}
+  .tile:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 0 0 rgba(20,20,19,.08),0 2px 6px rgba(20,20,19,.08)}
+  .tile.hit{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,119,87,.28),0 3px 0 rgba(20,20,19,.08)}
+  .tile .num{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--clay-deep);line-height:1}
+  .tile .pid{font-size:12px;color:var(--faint);font-family:var(--serif)} .tile .pname{font-size:18px;font-weight:600;margin-top:2px;line-height:1.2;font-family:var(--cjk)}
+  .status{position:fixed;left:0;right:0;bottom:0;background:rgba(240,238,230,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;z-index:5;font-family:var(--serif)}
+  .queue.on{color:var(--clay-deep);font-weight:600}
+  .modal{position:fixed;inset:0;background:rgba(20,20,19,.45);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:18px;z-index:8}
   .modal.show{display:flex}
-  .box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;max-height:86vh;overflow:auto}
-  .box h2{margin:0 0 4px;font-size:21px} .box .sub2{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .box{background:#FAF9F5;border:1px solid var(--line);border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;max-height:86vh;overflow:auto;box-shadow:0 20px 60px rgba(20,20,19,.25)}
+  .box h2{margin:0 0 4px;font-size:22px;font-family:var(--cjk);font-weight:600} .box .sub2{color:var(--muted);font-size:13px;margin-bottom:12px;font-family:var(--serif)}
   .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
-  .btns button{flex:1;min-width:76px;border:none;border-radius:11px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;background:#0b2531;color:var(--ink);border:1px solid var(--line)}
-  button.ok{background:linear-gradient(180deg,#8bd6c9,var(--water));color:#04171e;border:none}
-  button.no{background:#7e3a3a;color:#fff;border:none}
-  button.warn{background:linear-gradient(180deg,#f2d68a,var(--gold));color:#3d2b00;border:none}
-  .ghost{background:transparent!important;color:var(--muted)!important;border:none!important;font-weight:400!important}
-  .confirm-line{font-size:16.5px;line-height:1.8;background:#0b2531;border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
-  .hist{ text-align:left;font-size:14px }
+  .btns button{flex:1;min-width:76px;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--card);color:var(--ink);font-family:var(--serif);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 3px 0 rgba(20,20,19,.1);transition:transform .09s}
+  .btns button:active{transform:translateY(3px);box-shadow:0 0 0 rgba(20,20,19,.1)}
+  .btns button small{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px;font-family:var(--cjk)}
+  .btns button.t1{background:#E9E5DC;color:var(--ink2)}
+  .btns button.t3{background:linear-gradient(180deg,#E8C0A8,#D9A283);color:#4a2416;border-color:rgba(158,69,41,.35)}
+  .btns button.t6{background:linear-gradient(180deg,#E8C36B,var(--gold));color:#3d2b00;border-color:rgba(138,95,20,.4)}
+  button.ok{background:linear-gradient(180deg,#E08A67,var(--clay-deep))!important;color:#FFF9F5!important;border:none!important}
+  button.no{background:#B4573A!important;color:#fff!important;border:none!important}
+  button.warn{background:linear-gradient(180deg,#E8C36B,var(--gold))!important;color:#3d2b00!important;border:none!important}
+  .ghost{background:transparent!important;color:var(--muted)!important;border:none!important;font-weight:400!important;box-shadow:none!important}
+  .confirm-line{font-size:16.5px;line-height:1.8;background:rgba(240,238,230,.9);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0;font-family:var(--cjk)}
+  .hostnote{background:rgba(217,119,87,.12);border:1px solid rgba(217,119,87,.45);color:var(--clay-deep);border-radius:10px;padding:9px 11px;font-size:14px;text-align:left;margin-bottom:8px;line-height:1.5;font-family:var(--cjk)}
+  .hostnote.warn{background:rgba(190,90,76,.12);border-color:var(--red);color:#8a2f24}
+  .hist{ text-align:left;font-size:14px;font-family:var(--cjk)}
   .hist .row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px dashed var(--line);padding:9px 2px}
   .hist .row.undone{opacity:.45;text-decoration:line-through}
   .hist .row button{padding:7px 10px;font-size:13px;flex:0 0 auto;border-radius:8px}
-  .toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:var(--water);color:#04171e;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;transition:.25s;font-size:14px;z-index:9;max-width:88vw;text-align:center}
-  .toast.err{background:var(--red);color:#fff}
+  .toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:var(--clay-deep);color:#FFF9F5;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;transition:.25s;font-size:14px;z-index:9;max-width:88vw;text-align:center;font-family:var(--cjk)}
+  .toast.err{background:var(--red)}
   .toast.show{opacity:1}
 </style>
+
 </head>
 <body>
 <header>
@@ -70,6 +85,7 @@
 <!-- 入分 modal -->
 <div class="modal" id="modal"><div class="box">
   <h2 id="m-name"></h2><div class="sub2" id="m-ctx"></div>
+  <div id="m-hostnotes"></div>
   <div id="step-input">
     <div id="m-coins">
       <div style="color:var(--muted);font-size:13px;margin-bottom:8px" id="m-coins-label">base 代幣（站長話你知）</div>
@@ -164,29 +180,31 @@ function openModal(id){
   $('m-name').textContent=`${id} ${nameOf(id)}`;
   $('m-ctx').textContent=`${rdSel.value} · ${stLabel()}`;
   const isAuction=stSel.value==='career'&&rdSel.value==='R4';
+  const FIXED={inner:{R2:2,R3:2,R4:2,R5:2},faith:{R3:3,R4:3,R5:6}};
+  const fixed=(FIXED[stSel.value]||{})[rdSel.value];
+  const p=ROSTER.find(x=>x.id===id)||{};
+  const hostNotes=((p.host||{})[stSel.value]||[]);
+  const eligNote = (stSel.value==='career'&&rdSel.value==='R5'&&(p.purple||0)<2) ? '<div class="hostnote warn">⚠️ 此人 🧘 不足 2，本回合不能進 📈（請其改站）</div>' : '';
   $('m-success').style.display='none';
-  $('m-coins').style.display=stSel.value==='inner'?'none':'block';
+  $('m-hostnotes').innerHTML = eligNote + hostNotes.map(t=>'<div class="hostnote">🃏 '+t+'</div>').join('');
+  $('m-coins').style.display=(fixed!=null)?'none':'block';
   $('m-coins-btns').innerHTML = isAuction
-    ? '<div style="color:var(--gold);font-size:14px;line-height:1.7">💰 R4 事業站＝暗標競投<br>出價、開標全部喺 Telegram 進行<br>（唔使喺呢度入分）</div>'
-    : '<button onclick="pick(1)">1</button><button onclick="pick(2)">2</button><button onclick="pick(3)">3</button><button onclick="pick(0)">0</button>';
+    ? '<div style="color:var(--gold);font-size:14px;line-height:1.7">💰 R4 事業站＝暗標競投<br>出價、開標全部喺 Telegram／網頁進行<br>（唔使喺呢度入分）</div>'
+    : '<button class="t1" onclick="pick(1)">1<small>嘗試</small></button><button class="t3" onclick="pick(3)">3<small>達標</small></button><button class="t6" onclick="pick(6)">6<small>出色</small></button>';
   showStep('input');
-  if(stSel.value==='inner'){ toConfirm(); }  // 內在站固定 2，直接去確認
+  if(fixed!=null){ cur.coins=fixed; toConfirm(); }   // 🧘 固定 2、⛪ R3/R4 固定 3、R5 固定 6
   $('modal').classList.add('show');
 }
 function showStep(which){
   $('step-input').style.display = which==='input'?'block':'none';
   $('step-confirm').style.display = which==='confirm'?'block':'none';
 }
-function pick(n){
-  cur.coins=n;
-  const isAuction=stSel.value==='career'&&rdSel.value==='R4';
-  if(stSel.value==='career'&&!isAuction){ $('m-success').style.display='block'; }
-  else toConfirm();
-}
+function pick(n){ cur.coins=n; toConfirm(); }   // 三級制：達標(≥3)=成功 由伺服器判斷，唔使再問成敗
 function succ(b){cur.success=b; toConfirm();}
 function toConfirm(){
-  const isInner=stSel.value==='inner';
-  const scoreTxt=isInner?'固定 2 代幣':`base ${cur.coins} 代幣${cur.success!==null?(cur.success?' · 任務成功':' · 任務失敗'):''}`;
+  const FIXED={inner:{R2:2,R3:2,R4:2,R5:2},faith:{R3:3,R4:3,R5:6}};
+  const fixed=(FIXED[stSel.value]||{})[rdSel.value];
+  const scoreTxt=fixed!=null?`固定 ${fixed} 代幣`:`${cur.coins===6?'6 · 出色':cur.coins===3?'3 · 達標':'1 · 嘗試'}`;
   $('c-line').innerHTML=`<b>${cur.id} ${nameOf(cur.id)}</b><br>${rdSel.value} · ${stLabel()}<br>${scoreTxt}`;
   showStep('confirm');
 }
@@ -194,7 +212,7 @@ function backToInput(){showStep('input');}
 function closeModal(){$('modal').classList.remove('show');}
 
 function doSubmit(){
-  const payload={type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,coins:cur.coins,success:cur.success};
+  const payload={type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,tier:cur.coins,coins:cur.coins};
   enqueue({kind:'checkin',payload}); closeModal(); flush();
   clearQ();   // 清空搜尋，下一位可以即刻打號碼
 }
