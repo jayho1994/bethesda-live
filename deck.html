@@ -5,6 +5,8 @@
 <title>人生追尋 · 畢士大版 · 大螢幕</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+<!-- 池邊衝刺 QR（qrcodejs · 純前端生成；載入失敗會 fallback 顯示大字 PIN ＋ 網址）-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{--paper:#F0EEE6;--clay:#D97757;--clay-deep:#9E4529;--ink:#141413;--ink2:#3D3D3A;--muted:#6B6963;
   --g:#4C7A52;--r:#BE5A4C;--p:#7A6099;--y:#9E7016;--b:#43698F;--gold:#C9962B;
@@ -133,6 +135,24 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 .row.up{background:linear-gradient(160deg,#eaf1fb,#dbe8f7);border-color:rgba(67,105,143,.4)}
 .row.up::after{content:"▲";color:#2c4f75;margin-left:auto}
 .row.down::after{content:"▼";color:var(--muted);margin-left:auto}
+/* ═ 池邊衝刺（Kahoot QR）═ */
+.rushwrap{display:flex;gap:6vh;align-items:center;justify-content:center;margin-top:3vh}
+.qrbox{background:#FFFDF9;border:1px solid rgba(20,20,19,.12);border-radius:2.4vh;padding:2.4vh;box-shadow:0 .5vh 0 rgba(20,20,19,.08),0 2.4vh 6vh rgba(20,20,19,.14);
+  opacity:0;animation:cardUp .8s var(--spring) forwards;display:grid;place-items:center}
+.qrbox img,.qrbox canvas{width:38vh!important;height:38vh!important;display:block}
+.qrbox .nourl{width:38vh;height:38vh;display:grid;place-items:center;text-align:center;font-family:var(--cjk);font-size:2.6vh;color:var(--muted);line-height:1.8}
+.rushinfo{display:flex;flex-direction:column;gap:1.6vh;text-align:left;font-family:var(--cjk)}
+.rushinfo .join{font-family:var(--serif);font-size:3.4vh;color:var(--clay-deep);letter-spacing:.06em}
+.rushinfo .pinlbl{font-size:2.2vh;color:var(--muted);letter-spacing:.3em}
+.rushinfo .pin{font-family:var(--serif);font-size:11vh;font-weight:700;color:#2c4f75;letter-spacing:.12em;line-height:1;font-variant-numeric:tabular-nums}
+.rushinfo .pin.none{font-size:4vh;color:var(--muted);font-weight:500;letter-spacing:.06em;font-family:var(--cjk)}
+.rushinfo .steps{font-size:2.4vh;color:var(--ink2);line-height:1.9;white-space:pre-wrap}
+.rushinfo .prize{font-family:var(--serif);font-size:2.8vh;color:var(--gold);margin-top:.6vh}
+#frame.with-art .rushwrap{justify-content:flex-start;gap:4vh}
+#frame.with-art .qrbox img,#frame.with-art .qrbox canvas,#frame.with-art .qrbox .nourl{width:30vh!important;height:30vh!important}
+#frame.with-art .rushinfo .pin{font-size:8vh}
+@keyframes ripple{0%{box-shadow:0 0 0 0 rgba(67,105,143,.35)}100%{box-shadow:0 0 0 3vh rgba(67,105,143,0)}}
+.qrbox.live{animation:cardUp .8s var(--spring) forwards,ripple 2.2s ease-out 1s infinite}
 /* Board overlay */
 #board{position:absolute;inset:0;border:0;opacity:0;pointer-events:none;transition:opacity 1s var(--ease);z-index:40;background:#0B1F2A}
 #board.on{opacity:1;pointer-events:auto}
@@ -183,7 +203,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 let CUR = null, LOCAL = null, PINNED = false, LAST = null, timerEnd = 0, timerTick = null, bgFlip = false;
 
-const ENTER = { title: 'enter-fade', round: 'enter-zoom', choose: 'enter-fade', situation: 'enter-turn', event: 'enter-flash', aftermath: 'enter-mist', storm: 'enter-shake', auction: 'enter-coins', reveal: 'enter-fade' };
+const ENTER = { title: 'enter-fade', round: 'enter-zoom', choose: 'enter-fade', situation: 'enter-turn', event: 'enter-flash', aftermath: 'enter-mist', storm: 'enter-shake', auction: 'enter-coins', reveal: 'enter-fade', rush: 'enter-zoom' };
 const TOK = [['green', '🟢', '事業'], ['red', '🔴', '關係'], ['purple', '🟣', '內在'], ['yellow', '🟡', '享樂'], ['blue', '🔵', '信仰']];
 
 // ── 嘗試 Canva 底圖；冇就 fallback ──
@@ -219,6 +239,21 @@ function html(s, st) {
     <div class="slide lines"><h1 style="font-size:11vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.2vh;text-align:center">${esc(s.body)}</div></div>`;
   if (k === 'auction') return `<div class="coins">${Array.from({ length: 28 }, (_, i) => `<i style="left:${(i * 3.6) % 100}%;animation-delay:${(i % 7) * .22}s"></i>`).join('')}</div>
     <div class="slide lines"><h1 style="font-size:10vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.4vh;text-align:center">${esc(s.body)}</div></div>`;
+  if (k === 'rush') {                                                     // 🏊 池邊衝刺：QR ＋ PIN（由 /state.kahoot 帶入）
+    const kh = st.kahoot || {}; const pin = kh.pin || '';
+    return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">🏊 池邊衝刺 · ${esc(s.round)}</div>
+      <h1 style="font-size:7vh;margin:1vh 0 0">水動了</h1>
+      <div class="rushwrap">
+        <div class="qrbox ${pin ? 'live' : ''}" id="qrbox"><div class="nourl">QR 生成中⋯</div></div>
+        <div class="rushinfo">
+          <div class="join">📱 掃 QR，或去 <b>${esc(kh.join || 'kahoot.it')}</b></div>
+          <div class="pinlbl">GAME PIN</div>
+          <div class="pin ${pin ? '' : 'none'}">${pin ? esc(pin) : '聽 MC 讀出'}</div>
+          <div class="steps">${esc(s.body)}</div>
+          <div class="prize">${esc(s.sub)}</div>
+        </div>
+      </div></div>`;
+  }
   if (k === 'reveal') {
     if (rv <= 1) return `<div class="slide"><div class="big">遊戲完結</div><div class="rank">六個回合。一個人生。</div></div>`;
     if (rv === 2) { const p = rd.public3 || []; const pd = (x, c, m) => x ? `<div class="pd ${c}"><div class="nm">${esc(x.name)}</div><div class="sc">${x.n} 枚</div><div class="base">${m}</div></div>` : '';
@@ -236,7 +271,7 @@ function html(s, st) {
 
 async function show(st, force) {
   const s = st.slide; if (!s) return;
-  const key = `${s.id}|${st.reveal}|${st.mode}`;
+  const key = `${s.id}|${st.reveal}|${st.mode}|${st.kahoot?.pin || ''}`;   // PIN 改咗 → 衝刺頁即時重繪
   if (!force && key === LAST) return; LAST = key;
   $('board').classList.toggle('on', st.mode === 'board');
   const bgUrl = SLIDES_DIR + s.id + (s.kind === 'reveal' ? `_p${st.reveal || 1}` : '') + '.png';
@@ -247,14 +282,24 @@ async function show(st, force) {
   $('frame').classList.toggle('dark-art', hasArt && DARK_ART.has(artKey));
   const c = $('content'); c.className = 'layer ' + (ENTER[s.kind] || 'enter-fade');
   if (s.kind === 'event') { $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go'); }
-  c.innerHTML = hasBg && s.kind !== 'reveal' ? '' : html(s, st);   // 有 Canva 底圖就唔畫 fallback（揭示頁例外：數據要 overlay）
+  c.innerHTML = hasBg && s.kind !== 'reveal' && s.kind !== 'rush' ? '' : html(s, st);   // 有 Canva 底圖就唔畫 fallback（揭示頁／衝刺頁例外：數據／QR 要 overlay）
   if (hasBg && s.kind === 'reveal') c.querySelectorAll('.slide').forEach(el => el.style.background = 'transparent');
+  if (s.kind === 'rush') drawQR(st.kahoot || {});
   stagger('.lines>*', .22); stagger('.st', .1); stagger('.opt', .14); stagger('.pd', .35); stagger('.row', .12);
   if (s.kind === 'reveal' && st.reveal === 3) setTimeout(() => document.querySelectorAll('.wt').forEach((el, i) => setTimeout(() => el.classList.add('flip'), 500 + i * 450)), 900);
   $('stagebar').innerHTML = s.stage?.stage ? `<span>${esc(s.round)}</span><b>${esc(s.stage.icon)} ${esc(s.stage.stage)}</b><span>${esc(s.stage.age)} · ${esc(s.stage.tag)}</span>` : '';
   const dots = Array.from({ length: s.total }, (_, i) => `<i class="${i === s.seq ? 'on' : ''}"></i>`).join('');
   $('foot').innerHTML = `${esc(s.id)}<span class="dots">${dots}</span>`;
   startTimer(s.timer);
+}
+// ── 池邊衝刺 QR：qrcodejs 有就畫；冇（CDN 失敗）就退回顯示網址大字 ──
+function drawQR(kh) {
+  const box = $('qrbox'); if (!box) return;
+  const url = kh.url || 'https://kahoot.it/';
+  box.innerHTML = '';
+  if (typeof QRCode === 'undefined') { box.innerHTML = `<div class="nourl">QR 載入失敗<br><b>${esc(kh.join || 'kahoot.it')}</b><br>入 PIN 就得</div>`; return; }
+  try { new QRCode(box, { text: url, width: 640, height: 640, correctLevel: QRCode.CorrectLevel.M, colorDark: '#141413', colorLight: '#FFFDF9' }); }
+  catch { box.innerHTML = `<div class="nourl"><b>${esc(kh.join || 'kahoot.it')}</b><br>入 PIN 就得</div>`; }
 }
 function startTimer(sec) {
   clearInterval(timerTick); const t = $('timer');

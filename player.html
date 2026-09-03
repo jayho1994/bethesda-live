@@ -144,6 +144,12 @@ button.seal:active{box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 0 0 #7C3520,0
 button.ghost{background:linear-gradient(180deg,#F4F1EA,#EAE6DD);color:var(--muted);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 rgba(20,20,19,.1),0 4px 10px rgba(20,20,19,.06)}
 button.mini{font-size:13px;padding:9px 14px;border-radius:11px;width:auto}
+/* ═══ 池邊衝刺（Kahoot）═══ */
+.prompt.rush{border-color:rgba(67,105,143,.45);background:linear-gradient(150deg,rgba(67,105,143,.12),rgba(255,254,250,.9))}
+.rushpin{text-align:center;font-family:var(--serif);font-size:18px;color:var(--ink2);margin:4px 0 12px;letter-spacing:.06em}
+.rushpin b{font-size:30px;color:#2c4f75;letter-spacing:.14em}
+a.opt{display:block;text-decoration:none;box-sizing:border-box}
+a.opt.rushbtn{text-align:center;font-size:19px;font-weight:700}
 .bidnow{background:rgba(240,238,230,.85);border:1px solid var(--line);border-radius:12px;
   padding:12px;text-align:center;font-size:16.5px;margin-bottom:12px;font-family:var(--serif);
   box-shadow:0 2px 0 rgba(20,20,19,.05) inset}
@@ -470,6 +476,15 @@ function promptHTML(p) {
       btn('opt ghost mini', { type: 'station_undo' }, '↩︎ 改揀') + '</div>' +
       '<div style="font-size:12px;color:var(--muted);margin-top:9px;font-family:var(--cjk)">' +
       '未入分之前都可以改。入咗分就要搵 MC。</div></div>';
+  }
+  if (p.kind === 'rush') {                        // 🏊 池邊衝刺：開 Kahoot（QR 喺大螢幕；手機直接撳）
+    return '<div class="prompt rush"><h2>🏊 ' + esc(p.title) + '</h2>' +
+      '<div class="body">' + esc(p.body) + '</div>' +
+      (p.blocked ? '<div class="rushpin">今回合坐低睇</div>' :
+        '<div class="rushpin">' + (p.pin ? 'Game PIN　<b>' + esc(p.pin) + '</b>' : 'PIN 睇大螢幕') + '</div>' +
+        '<div class="opts"><a class="opt seal rushbtn" href="' + esc(p.url) + '" target="_blank" rel="noopener">🏊 開 Kahoot' +
+        '<span class="s" style="color:#FFE9DD">會喺新分頁開 kahoot.it' + (p.pin ? '，PIN 已自動填' : '，入 PIN 就得') + '。玩完返嚟呢版。</span></a></div>') +
+      '</div>';
   }
   if (p.kind === 'bid') {
     const enc = encB(p.current.basket);
