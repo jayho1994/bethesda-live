@@ -153,6 +153,11 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 #frame.with-art .rushinfo .pin{font-size:8vh}
 @keyframes ripple{0%{box-shadow:0 0 0 0 rgba(67,105,143,.35)}100%{box-shadow:0 0 0 3vh rgba(67,105,143,0)}}
 .qrbox.live{animation:cardUp .8s var(--spring) forwards,ripple 2.2s ease-out 1s infinite}
+/* ═ v7：群體目標／結算 ═ */
+.goal{margin-top:3vh;max-width:80%;background:rgba(67,105,143,.10);border:1px solid rgba(67,105,143,.4);border-radius:1.6vh;padding:1.8vh 3vh;font-family:var(--cjk);font-size:2.7vh;line-height:1.7;text-align:left;opacity:0;animation:cardUp .8s var(--spring) .4s forwards}
+.goal b{display:block;font-size:1.9vh;letter-spacing:.3em;color:#2c4f75;margin-bottom:.6vh}
+.big.ok{color:#2c6b3f}.big.no{color:#8a2f24}
+#frame.dark-art .goal{background:rgba(40,34,30,.82);border-color:rgba(244,237,224,.2);color:#F4EDE0}
 /* Board overlay */
 #board{position:absolute;inset:0;border:0;opacity:0;pointer-events:none;transition:opacity 1s var(--ease);z-index:40;background:#0B1F2A}
 #board.on{opacity:1;pointer-events:auto}
@@ -187,14 +192,15 @@ const ART = {
   aftermath: 'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/KhzoSjztHkwqUs8JM17Q9/wmk5sPVRCJU4ou9IxaDG1.jpg',
   reveal:    'https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/wu29JgtblK9KyP4Id3mYc/kSftVEHzUuWZx4zY4jS7C.jpg',
 };
-const DARK_ART = new Set(['storm', 'reveal']);   // 深色油畫 → 文字轉淺色
+const DARK_ART = new Set(['storm', 'reveal']);   // 深色油畫 → 文字轉淺色（風向頁亦用 storm 底圖）
 function artKeyFor(s, st) {
   if (s.kind === 'title') return 'title';
   if (s.kind === 'storm') return 'storm';
   if (s.kind === 'auction') return 'auction';
   if (s.kind === 'aftermath') return 'aftermath';
   if (s.kind === 'reveal') return 'reveal';
-  if (s.round === 'R5') return s.kind === 'round' ? 'storm' : 'aftermath';
+  if (s.kind === 'wind') return 'storm';
+  if (s.round === 'R5') return s.kind === 'storm' ? 'storm' : 'aftermath';
   if (s.round === 'R6') return 'R6';
   return s.round || 'title';
 }
@@ -203,7 +209,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 let CUR = null, LOCAL = null, PINNED = false, LAST = null, timerEnd = 0, timerTick = null, bgFlip = false;
 
-const ENTER = { title: 'enter-fade', round: 'enter-zoom', choose: 'enter-fade', situation: 'enter-turn', event: 'enter-flash', aftermath: 'enter-mist', storm: 'enter-shake', auction: 'enter-coins', reveal: 'enter-fade', rush: 'enter-zoom' };
+const ENTER = { title: 'enter-fade', round: 'enter-zoom', choose: 'enter-zoom', situation: 'enter-turn', event: 'enter-flash', aftermath: 'enter-mist', storm: 'enter-shake', auction: 'enter-coins', reveal: 'enter-fade', rush: 'enter-zoom', wind: 'enter-mist', lookback: 'enter-fade', settle: 'enter-zoom' };
 const TOK = [['green', '🟢', '事業'], ['red', '🔴', '關係'], ['purple', '🟣', '內在'], ['yellow', '🟡', '享樂'], ['blue', '🔵', '信仰']];
 
 // ── 嘗試 Canva 底圖；冇就 fallback ──
@@ -230,11 +236,26 @@ function html(s, st) {
   const k = s.kind, rd = st.revealData || {}, rv = st.reveal || 0;
   if (k === 'title') return `<div class="slide"><div class="sub" style="font-size:3.4vh">${esc(s.body)}</div><div class="rule"></div><h1 style="font-size:9vh">${esc(s.title)}</h1><div class="rule"></div><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">提摩太團契 · 秋令營 2026</div></div>`;
   if (k === 'round') return `<div class="slide lines"><div class="sub" style="font-size:3vh;letter-spacing:.3em">${esc(s.round)}</div><h1 style="font-size:11vh">${esc(s.title)}</h1><div class="sub" style="font-size:4vh">${esc(s.sub)}</div><div class="rule"></div><div class="body" style="font-size:3vh;text-align:center">${esc(s.body)}</div></div>`;
-  if (k === 'choose') return `<div class="slide"><h1 style="font-size:6vh">${esc(s.title)}</h1><div class="sub" style="font-size:2.6vh;margin-top:1vh">${esc(s.sub)}</div>
-    <div class="grid">${(s.items || []).map(it => `<div class="st"><div class="e">${it.emoji}</div><div class="n">${esc(it.name)}</div><div class="t">${esc(it.task)}</div></div>`).join('')}</div></div>`;
+  if (k === 'choose') return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">${esc(s.round)}</div><h1 style="font-size:6.5vh">${esc(s.title)}</h1><div class="sub" style="font-size:2.6vh;margin-top:1vh">${esc(s.sub)}</div>
+    <div class="grid">${(s.items || []).map(it => `<div class="st"><div class="e">${it.emoji}</div><div class="n">${esc(it.name)}</div><div class="t">${esc(it.task)}</div></div>`).join('')}</div>
+    ${s.group ? `<div class="goal"><b>👥 群體目標</b>${esc(s.group)}</div>` : ''}
+    ${s.hint ? `<div class="hint">🧭 ${esc(s.hint)}</div>` : ''}</div>`;
+  if (k === 'settle') { const r = s.settle; return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">${esc(s.round)} · ⚖️ 結算</div>
+    ${s.group ? `<div class="goal" style="margin-top:2vh"><b>👥 群體目標</b>${esc(s.group)}</div>` : ''}
+    ${r ? `<div class="big ${r.ok ? 'ok' : 'no'}" style="font-size:12vh;margin-top:3vh">${r.ok ? '達成' : '未達成'}</div><div class="rank" style="font-size:3vh">${esc(r.text)}</div>` : `<div class="rank" style="margin-top:6vh">結算中⋯</div>`}
+    <div class="hint">先算個人隱藏任務，再算群體目標</div></div>`; }
+  if (k === 'event' && s.private) return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">⚡ 事件</div><h1 style="font-size:8vh;margin:1.2vh 0 2vh">${esc(s.title)}</h1>
+    <div class="body" style="font-size:3.4vh;text-align:center;max-width:70%">${esc(s.body)}</div>
+    <div class="big" style="font-size:5vh;margin-top:3vh;letter-spacing:.3em">📱 請看手機</div><div class="hint">${esc(s.sub)}</div></div>`;
   if (['situation', 'event', 'aftermath'].includes(k)) return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">${k === 'situation' ? '📖 情境' : k === 'event' ? '⚡ 事件' : '🌫 風暴之後'}</div><h1 style="font-size:7vh;margin:1.2vh 0 2vh">${esc(s.title)}</h1>
-    <div class="body lines" style="font-size:3vh">${esc(s.body).split('\n').filter(x => x.trim()).map(l => `<div>${l}</div>`).join('')}</div>
+    <div class="body lines" style="font-size:2.9vh">${esc(s.body).split('\n').filter(x => x.trim()).map(l => `<div>${l}</div>`).join('')}</div>
     <div class="opts">${(s.choices || []).map(c => `<div class="opt">${esc(c)}</div>`).join('')}</div><div class="hint">${esc(s.sub)}</div></div>`;
+  if (k === 'wind') return `<div class="slide lines"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">${esc(s.round)} · 🌬</div><h1 style="font-size:9vh">${esc(s.title)}</h1><div class="sub" style="font-size:3vh">${esc(s.sub)}</div><div class="rule"></div>
+    <div class="body" style="font-size:3vh;text-align:center">${esc(s.body)}</div>
+    <div class="grid" style="margin-top:3vh">${(s.items || []).map(n => `<div class="st"><div class="n" style="font-size:3.6vh;margin-top:0">${esc(n)}</div></div>`).join('')}</div>
+    <div class="hint">📱 你的風向，在手機上</div></div>`;
+  if (k === 'lookback') return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">${esc(s.round)} · 🕯</div><h1 style="font-size:8vh;margin:1.2vh 0 2vh">${esc(s.title)}</h1>
+    <div class="body lines" style="font-size:3.2vh;text-align:center">${esc(s.body).split('\n').filter(x => x.trim()).map(l => `<div>${l}</div>`).join('')}</div><div class="hint">${esc(s.sub)}</div></div>`;
   if (k === 'storm') return `<div class="rain">${Array.from({ length: 60 }, (_, i) => `<i style="left:${(i * 1.7) % 100}%;animation-delay:${(i % 10) * .11}s;animation-duration:${.9 + (i % 5) * .12}s"></i>`).join('')}</div>
     <div class="slide lines"><h1 style="font-size:11vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.2vh;text-align:center">${esc(s.body)}</div></div>`;
   if (k === 'auction') return `<div class="coins">${Array.from({ length: 28 }, (_, i) => `<i style="left:${(i * 3.6) % 100}%;animation-delay:${(i % 7) * .22}s"></i>`).join('')}</div>
@@ -246,9 +267,8 @@ function html(s, st) {
       <div class="rushwrap">
         <div class="qrbox ${pin ? 'live' : ''}" id="qrbox"><div class="nourl">QR 生成中⋯</div></div>
         <div class="rushinfo">
-          <div class="join">📱 掃 QR，或去 <b>${esc(kh.join || 'kahoot.it')}</b></div>
-          <div class="pinlbl">GAME PIN</div>
-          <div class="pin ${pin ? '' : 'none'}">${pin ? esc(pin) : '聽 MC 讀出'}</div>
+          <div class="join">📱 掃 QR${kh.link ? '，直接進入' : `，或到 <b>${esc(kh.join || 'kahoot.it')}</b>`}</div>
+          ${kh.link ? '' : `<div class="pinlbl">GAME PIN</div><div class="pin ${pin ? '' : 'none'}">${pin ? esc(pin) : '聽主持人讀出'}</div>`}
           <div class="steps">${esc(s.body)}</div>
           <div class="prize">${esc(s.sub)}</div>
         </div>
@@ -256,9 +276,20 @@ function html(s, st) {
   }
   if (k === 'reveal') {
     if (rv <= 1) return `<div class="slide"><div class="big">遊戲完結</div><div class="rank">六個回合。一個人生。</div></div>`;
+    if (rv === 8) { const t = rd.tags || {}; const gs = rd.groups || []; return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">這一局，全場的決定</div>
+      <div class="wts" style="margin-top:3vh">${[['順應', t.yield, '#9E4529'], ['自主', t.self, '#2c6b3f'], ['迴避', t.avoid, '#6B6963']].map(([n, v, c], i) => `<div class="pd" style="animation-delay:${.3 + i * .35}s"><div class="nm" style="color:${c};font-size:9vh">${v ?? 0}%</div><div class="sc" style="font-family:var(--cjk);font-size:3vh">${n}</div></div>`).join('')}</div>
+      <div class="rank" style="font-size:2.8vh;margin-top:3vh">跟從誘因的比率：${rd.followed ?? 0}%</div>
+      <div class="col" style="margin-top:2.5vh;min-width:70vh">${gs.map(g => `<div class="row ${g.ok ? 'up' : 'down'}"><b>${esc(g.round)}</b>${esc(g.text)}</div>`).join('')}</div>
+      <div class="hint">📱 你這一局，在手機上</div></div>`; }
+    if (rv >= 10) return `<div class="slide lines"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">約翰福音五章</div><h1 style="font-size:7vh">畢士大池</h1><div class="rule"></div>
+      <div class="body" style="font-size:3vh;text-align:center">眾人爭先落水，落到水裏的人得到的是空的。<br>被留在池邊三十八年、「沒有人」的那一位，<br>遇見了耶穌。</div>
+      <div class="sub" style="font-size:3.4vh;margin-top:4vh">θέλεις ὑγιὴς γενέσθαι;</div></div>`;
+    if (rv >= 9) { const rw = rd.rewrite || []; return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">🕯 回望 · 最多人想改寫的決定</div>
+      <div class="col" style="margin-top:3vh;min-width:60vh">${rw.length ? rw.map((x, i) => `<div class="row"><b>${x.n}</b>${esc(x.label)}</div>`).join('') : '<div class="row">（沒有人選擇改寫。）</div>'}</div>
+      <div class="rank" style="font-size:2.6vh;margin-top:3vh">${rd.rewriteTotal ? `${rd.rewriteTotal} 人回望了自己的路。` : ''}</div></div>`; }
     if (rv === 2) { const p = rd.public3 || []; const pd = (x, c, m) => x ? `<div class="pd ${c}"><div class="nm">${esc(x.name)}</div><div class="sc">${x.n} 枚</div><div class="base">${m}</div></div>` : '';
       return `<div class="slide"><div class="sub" style="font-size:2.8vh;letter-spacing:.3em">公開榜 · 按代幣總數</div><div class="podium">${pd(p[1], 'pd2', 2)}${pd(p[0], 'pd1', 1)}${pd(p[2], 'pd3', 3)}</div></div>`; }
-    if (rv === 3) { const w = rd.weights || {}; return `<div class="slide"><div class="big" style="font-size:6vh">但係——</div><div class="rank" style="font-size:2.8vh;letter-spacing:.3em">每種代幣，重量唔一樣</div>
+    if (rv === 3) { const w = rd.weights || {}; return `<div class="slide"><div class="big" style="font-size:6vh">但是——</div><div class="rank" style="font-size:2.8vh;letter-spacing:.3em">每一種代幣，重量並不一樣</div>
       <div class="wts">${TOK.map(([k2, e, n]) => `<div class="wt ${k2 === 'blue' ? 'blue' : ''}" data-k="${k2}"><div class="in"><div class="f">${e}</div><div class="k">×${w[k2] ?? '?'}</div></div></div>`).join('')}</div></div>`; }
     if (rv >= 4 && rv <= 6) { const i = 6 - rv; const x = (rd.true3 || [])[i]; return `<div class="slide"><div class="rank">真榜 第 ${i + 1} 名</div><div class="big">${x ? esc(x.name) : '⋯'}</div><div class="rank" style="font-size:3.4vh">${x ? `${x.s} 分 · ${x.n} 枚` : ''}</div></div>`; }
     const c = rd.compare || { public: [], true: [] }; const pubIdx = Object.fromEntries(c.public.map((n, i) => [n, i]));
@@ -297,9 +328,9 @@ function drawQR(kh) {
   const box = $('qrbox'); if (!box) return;
   const url = kh.url || 'https://kahoot.it/';
   box.innerHTML = '';
-  if (typeof QRCode === 'undefined') { box.innerHTML = `<div class="nourl">QR 載入失敗<br><b>${esc(kh.join || 'kahoot.it')}</b><br>入 PIN 就得</div>`; return; }
+  if (typeof QRCode === 'undefined') { box.innerHTML = `<div class="nourl">QR 載入失敗<br><b>${esc(kh.join || 'kahoot.it')}</b><br>輸入 PIN 即可</div>`; return; }
   try { new QRCode(box, { text: url, width: 640, height: 640, correctLevel: QRCode.CorrectLevel.M, colorDark: '#141413', colorLight: '#FFFDF9' }); }
-  catch { box.innerHTML = `<div class="nourl"><b>${esc(kh.join || 'kahoot.it')}</b><br>入 PIN 就得</div>`; }
+  catch { box.innerHTML = `<div class="nourl"><b>${esc(kh.join || 'kahoot.it')}</b><br>輸入 PIN 即可</div>`; }
 }
 function startTimer(sec) {
   clearInterval(timerTick); const t = $('timer');
@@ -312,7 +343,7 @@ async function poll() {
   try { const r = await fetch(BASE + '/state', { cache: 'no-store' }); const st = await r.json(); CUR = st;
     $('status').textContent = `同步 ${new Date().toLocaleTimeString('zh-HK')}`;
     if (!PINNED) show(st);
-  } catch { $('status').textContent = '連線唔到，重試中'; }
+  } catch { $('status').textContent = '連線不上，重試中'; }
 }
 // 鍵盤：← → 本地翻頁（rehearsal）；P 釘住；Esc 解除
 document.addEventListener('keydown', async e => {
@@ -327,7 +358,7 @@ document.addEventListener('keydown', async e => {
   }
   if (e.key === 'b' || e.key === 'B') $('board').classList.toggle('on');
 });
-poll(); setInterval(poll, 3000);
+poll(); setInterval(poll, 2000);   // v6：狀態小、快取短，2 秒一輪
 </script>
 </body>
 </html>

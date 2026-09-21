@@ -80,11 +80,11 @@ h1{font-family:var(--cjk);font-size:clamp(24px,4vw,40px);letter-spacing:.14em;ma
     <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
     <h1>人生追尋 · 畢士大版</h1>
     <div class="ripple"></div>
-    <div class="status" id="status"><span class="dot"></span>連線中…</div>
+    <div class="status" id="status"><span class="dot"></span>連線中⋯</div>
   </header>
   <div class="podium" id="podium"></div>
   <div class="pool-edge"></div>
-  <div class="grid" id="grid"><div class="empty">等緊池邊嘅人……</div></div>
+  <div class="grid" id="grid"><div class="empty">等着池邊的人⋯⋯</div></div>
   <div class="legend">
     <span><i style="background:var(--g)"></i>🟢</span><span><i style="background:var(--r)"></i>🔴</span>
     <span><i style="background:var(--p)"></i>🟣</span><span><i style="background:var(--y)"></i>🟡</span>
@@ -101,11 +101,11 @@ const count=t=>COLORS.reduce((s,[k])=>s+(t?.[k]||0),0);
 
 // 鼓勵／冇惡意串串貢（畢士大味，唔 leak 加權）
 const ENC={
-  p1:['全場最矚目——池邊個個都望住你。','行得最前嗰個。下一round，快得過你自己嗎？','霸住池口！不過記住：水動嗰下，先係關鍵。'],
-  p2:['一步之遙。今次差少少，下次咪唔好差囉。','銀色都好靚——但你唔係為銀色嚟嘅。Play smart.','貼住第一。等佢行差踏錯，定係自己行快啲？'],
-  p3:['企上台喇！上面仲有兩個位，睇你點爬。','季軍係最有故事嘅位——通常都唔甘心。','入三甲！下一round，攞埋佢哋嗰啲。'],
-  hi:['有形有勢，繼續儲！','穩陣。但穩陣入唔到三甲——諗計。','就差一步爆上頒獎台。邊個站最抵去？','你儲緊嘢。問題係：儲啱咗未？'],
-  lo:['池邊等咗三十八年嗰位都冇放棄。你先第幾round啫。','慢熱啫。下一round先係你嘅round。','代幣少，包袱都少。轉身快過晒佢哋。','唔好淨係鬥快——鬥聰明。下round睇你。','人少嘅地方，先執到寶。諗下邊度冇人去。'],
+  p1:['全場的目光都在你身上——池邊的人都望着你。','走得最前的一個。下一回合，你能快過自己嗎？','守住了池口。但記住：水動的那一刻，才是關鍵。'],
+  p2:['一步之遙。這一次差一點，下一次未必。','銀色也很好看——但你不是為銀色而來的。','緊貼第一。等他失足，還是自己走快一點？'],
+  p3:['站上台了。上面還有兩個位置，看你怎樣攀。','季軍是最有故事的位置——通常都不甘心。','進了三甲。下一回合，把他們的也拿過來。'],
+  hi:['有形有勢，繼續積累。','穩妥。但穩妥進不了三甲——想想辦法。','只差一步便登上頒獎台。哪一個站最划算？','你在積累。問題是：積累對了嗎？'],
+  lo:['池邊等了三十八年的那一位也沒有放棄。你才第幾回合。','慢熱而已。下一回合才是你的回合。','代幣少，包袱也少。轉身比他們都快。','不要只比快——比聰明。下一回合看你的。','人少的地方，才撿得到寶。想想哪裏沒有人去。'],
 };
 const pickEnc=(pool,id,total)=>{let h=total;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return pool[h%pool.length];};
 
@@ -142,7 +142,7 @@ function render(list){
       <div class="ct">${count(p.tokens)} 代幣${p.gold?` · 🥇${p.gold}`:''}</div>
       ${jar(p,maxTotal,false)}
       <div class="en">${pickEnc(pool,p.id,count(p.tokens))}</div>
-    </div>`;}).join('') : (ranked.length? '' : '<div class="empty">未有人綁定入場。池邊仲係靜嘅。</div>');
+    </div>`;}).join('') : (ranked.length? '' : '<div class="empty">還沒有人進場。池邊仍是靜的。</div>');
 }
 let lastOk=0;
 async function poll(){
@@ -156,7 +156,7 @@ async function poll(){
     $('status').innerHTML=`<span class="dot"></span>LIVE · ${data.length} 位玩家 · ${new Date().toLocaleTimeString('zh-HK')}`;
   }catch(e){
     $('status').className='status err';
-    $('status').innerHTML=`<span class="dot"></span>連線唔到（${e.message}）· ${lastOk?'顯示上次資料':'未有資料'} · 重試中`;
+    $('status').innerHTML=`<span class="dot"></span>連線不上（${e.message}）· ${lastOk?'顯示上一次的資料':'尚無資料'} · 重試中`;
   }
 }
 poll(); setInterval(poll,3000);

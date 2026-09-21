@@ -144,6 +144,11 @@ button.seal:active{box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 0 0 #7C3520,0
 button.ghost{background:linear-gradient(180deg,#F4F1EA,#EAE6DD);color:var(--muted);
   box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 0 rgba(20,20,19,.1),0 4px 10px rgba(20,20,19,.06)}
 button.mini{font-size:13px;padding:9px 14px;border-radius:11px;width:auto}
+/* ═══ v7：誘因／隱藏任務／星號站 ═══ */
+.inc{font-family:var(--cjk);font-size:12.5px;color:var(--clay-deep);line-height:1.8;margin:-6px 0 12px;padding:8px 12px;border-left:2px solid rgba(217,119,87,.5);background:rgba(217,119,87,.06);border-radius:0 8px 8px 0}
+.mission{margin-top:12px;font-family:var(--cjk);font-size:13px;color:#2c4f75;background:rgba(67,105,143,.10);border:1px dashed rgba(67,105,143,.45);border-radius:10px;padding:9px 12px;line-height:1.7}
+button.opt.star{border-color:rgba(201,150,43,.7);box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 3px 0 rgba(138,95,20,.35),0 6px 14px rgba(201,150,43,.18)}
+button.opt.star .s{color:#8a5f14}
 /* ═══ 池邊衝刺（Kahoot）═══ */
 .prompt.rush{border-color:rgba(67,105,143,.45);background:linear-gradient(150deg,rgba(67,105,143,.12),rgba(255,254,250,.9))}
 .rushpin{text-align:center;font-family:var(--serif);font-size:18px;color:var(--ink2);margin:4px 0 12px;letter-spacing:.06em}
@@ -256,6 +261,7 @@ const encB = b => ['green','red','purple','yellow','blue'].map(k => b[k] || 0).j
 function actOf(p, o) {
   if (p.kind === 'station') return { type: 'station', station: o.value };
   if (p.kind === 'interactive') return { type: 'interactive', ref: p.ref, choice: o.value, top3: !!p.top3 };
+  if (p.kind === 'lookback') return { type: 'lookback', choice: o.value };
   return {};
 }
 
@@ -404,17 +410,17 @@ function growthHTML(v) {
       '<div class="gl">' + esc(String(p.round).replace('（而家）', '')) + '</div></div>';
   }).join('');
   const tl = (v.choices || []).slice(-10).map(c => {
-    const label = c.act === '🧭選站' ? '去咗 <em>' + esc(c.note) + '</em>'
-      : c.act === '🧭改揀' ? '<em>改咗主意</em>'
+    const label = c.act === '🧭選站' ? '去了 <em>' + esc(c.note) + '</em>'
+      : c.act === '🧭改揀' ? '<em>改了主意</em>'
       : c.act === '💰暗標' ? '暗標出價 <em>' + esc(c.note) + '</em>'
       : c.act === '💰開標' ? '<em>' + esc(c.note) + '</em>'
       : esc(c.act.replace('🎭', '')) + ' — <em>' + esc(c.note) + '</em>';
     return '<div class="tlrow"><span class="rd">' + esc(c.round) + '</span><span class="tx">' + label + '</span></div>';
   }).join('');
-  return '<div class="card"><h2>🧍 我而家係咁 <span class="hint">' + esc(v.round) + '</span></h2>' +
+  return '<div class="card"><h2>🧍 我現在的樣子 <span class="hint">' + esc(v.round) + '</span></h2>' +
     '<div class="avatarwrap">' + avatarSVG(curTok, rn, {}) + '</div>' +
     '<div class="avcap">' + esc(WEARLABEL[rn] || '') +
-      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 一張白紙，未落過注') + '</div>' +
+      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 一張白紙，尚未落注') + '</div>' +
     (steps ? '<div class="growth">' + steps + '</div>' : '') +
     (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
 }
@@ -436,7 +442,7 @@ function stageHTML(v) {
 function badgeHTML(v) {
   return '<div class="badge"><span class="no">' + esc(v.id) + '</span>' +
     '<span class="who"><span class="n">' + esc(v.name) + '</span><br>' +
-    '<span class="t">入分時，同站長講呢個號碼</span></span></div>';
+    '<span class="t">入分時，向站長報這個號碼</span></span></div>';
 }
 
 function walletHTML(v) {
@@ -450,6 +456,8 @@ function walletHTML(v) {
   const meta = [];
   if (v.wallet.gold !== null) meta.push('🥇 ' + v.wallet.gold);
   if (v.wallet.markers) meta.push('🤝 ' + v.wallet.markers);
+  if (v.wallet.marks && v.wallet.marks.scale) meta.push('⚖ ' + v.wallet.marks.scale);
+  if (v.wallet.marks && v.wallet.marks.candle) meta.push('🕯 ' + v.wallet.marks.candle);
   meta.push('合共 ' + v.wallet.total + ' 枚');
   const c = v.cards;
   return '<div class="card"><div class="wrow">' +
@@ -460,9 +468,9 @@ function walletHTML(v) {
     '<div class="meta">' + meta.map(m => '<span>' + m + '</span>').join('') + '</div>' +
     '<details class="mycards"><summary>🃏 我的牌 · ' + (esc((c.personality || []).join('、')) || '—') + ' · ' + (esc(c.environment) || '—') + ' · ' + (esc(c.desire) || '—') + '</summary>' +
       (v.myCards || []).map(k => '<div class="mc"><span class="mk">' + esc(k.kind) + '</span><b>' + esc(k.name) + '</b><span class="me">' + esc(k.effect) + '</span></div>').join('') +
-      '<div class="mnote">以上係印喺牌上嘅效果。情境同事件入面仲有啲嘢，要揀咗先知。</div>' +
+      '<div class="mnote">以上是印在牌上的效果。情境與事件裏還有別的，選了才知道。</div>' +
     '</details></div>' +
-    (v.locked ? '<div class="locked">🔒 本回合已入分（一回合只可以揀一個站）</div>' : '');
+    (v.locked ? '<div class="locked">🔒 本回合已入分（一回合只可以選一個站）</div>' : '');
 }
 
 function promptHTML(p) {
@@ -473,17 +481,17 @@ function promptHTML(p) {
   if (p.kind === 'chosen') {                       // 已選站 → 可以改揀
     return '<div class="prompt"><h2>🧭 ' + esc(p.title) + '</h2>' +
       '<div class="chosenbox"><span class="cv">' + esc(p.body) + '</span>' +
-      btn('opt ghost mini', { type: 'station_undo' }, '↩︎ 改揀') + '</div>' +
+      btn('opt ghost mini', { type: 'station_undo' }, '↩︎ 改選') + '</div>' +
       '<div style="font-size:12px;color:var(--muted);margin-top:9px;font-family:var(--cjk)">' +
-      '未入分之前都可以改。入咗分就要搵 MC。</div></div>';
+      '入分之前都可以改。入了分便要找主持人。</div></div>';
   }
   if (p.kind === 'rush') {                        // 🏊 池邊衝刺：開 Kahoot（QR 喺大螢幕；手機直接撳）
     return '<div class="prompt rush"><h2>🏊 ' + esc(p.title) + '</h2>' +
       '<div class="body">' + esc(p.body) + '</div>' +
-      (p.blocked ? '<div class="rushpin">今回合坐低睇</div>' :
-        '<div class="rushpin">' + (p.pin ? 'Game PIN　<b>' + esc(p.pin) + '</b>' : 'PIN 睇大螢幕') + '</div>' +
+      (p.blocked ? '<div class="rushpin">本回合請坐着看</div>' :
+        '<div class="rushpin">' + (p.pin ? 'Game PIN　<b>' + esc(p.pin) + '</b>' : (p.link ? '按下面的按鈕直接進入' : 'PIN 請看大螢幕')) + '</div>' +
         '<div class="opts"><a class="opt seal rushbtn" href="' + esc(p.url) + '" target="_blank" rel="noopener">🏊 開 Kahoot' +
-        '<span class="s" style="color:#FFE9DD">會喺新分頁開 kahoot.it' + (p.pin ? '，PIN 已自動填' : '，入 PIN 就得') + '。玩完返嚟呢版。</span></a></div>') +
+        '<span class="s" style="color:#FFE9DD">會在新分頁開啟 Kahoot' + (p.pin ? '，PIN 已自動填上' : (p.link ? '' : '，輸入 PIN 即可')) + '。完成後回到這一頁。</span></a></div>') +
       '</div>';
   }
   if (p.kind === 'bid') {
@@ -498,12 +506,14 @@ function promptHTML(p) {
         btn('opt seal', { type: 'bid_seal', basket: enc }, '✅ 封標（' + p.current.total + '枚）', !p.canSeal) +
       '</div></div></div>';
   }
-  const opts = p.options.map(o => btn('opt', actOf(p, o),
+  const opts = p.options.map(o => btn('opt' + (o.star ? ' star' : ''), actOf(p, o),
     esc(o.label) + (o.sub ? '<span class="s">' + esc(o.sub) + '</span>' : ''))).join('');
-  const icon = p.kind === 'station' ? '🧭' : '📖';
+  const icon = p.kind === 'station' ? '🧭' : p.kind === 'lookback' ? '🕯' : '📖';
+  const inc = (p.incentives || []).length ? '<div class="inc">' + p.incentives.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' : '';
+  const ms = p.mission ? '<div class="mission">🎯 只有你看見：' + esc(p.mission) + '</div>' : '';
   return '<div class="prompt"><h2>' + icon + ' ' + esc(p.title) + '</h2>' +
-    (p.body ? '<div class="body">' + esc(p.body) + '</div>' : '') +
-    '<div class="opts">' + opts + '</div></div>';
+    (p.body ? '<div class="body">' + esc(p.body) + '</div>' : '') + inc +
+    '<div class="opts">' + opts + '</div>' + ms + '</div>';
 }
 
 function render() {
@@ -512,16 +522,17 @@ function render() {
   const p = LOCALPROMPT || VIEW.pending;
   const logs = (VIEW.log || []).slice().reverse();
   $('app').innerHTML =
-    (everOK ? '' : '<div class="offline">📵 而家連唔到伺服器，顯示緊上次嘅紀錄。有網會自動更新。</div>') +
+    (everOK ? '' : '<div class="offline">📵 暫時連不上伺服器，顯示的是上一次的紀錄。網絡恢復後會自動更新。</div>') +
+    (getOut() ? '<div class="offline">📨 有一個選擇正在等候送出。網絡一恢復便會自動送達，不必再按。</div>' : '') +
     stageHTML(VIEW) +
     badgeHTML(VIEW) +
     walletHTML(VIEW) +
     (LASTRESULT && RESULTROUND === VIEW.round
-      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' · 你嘅選擇帶嚟嘅嘢</span>' + esc(LASTRESULT) + '</div>' : '') +
+      ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' · 你的選擇帶來的</span>' + esc(LASTRESULT) + '</div>' : '') +
     (VIEW.message && VIEW.message !== LASTRESULT && VIEW.messageRound === VIEW.round && !(LASTRESULT && RESULTROUND === VIEW.round)
       ? '<div class="result"><span class="tag">' + esc(VIEW.round) + ' 訊息</span>' + esc(VIEW.message) + '</div>' : '') +
     (p ? promptHTML(p) : '<div class="card"><div class="waiting"><span class="dot"></span>' +
-       '而家冇嘢要你做。<br>留住呢一版——MC 一開新環節，幾秒內會自動彈出嚟。</div></div>') +
+       '現在沒有事要你做。<br>留在這一頁——主持人開啟新環節時，幾秒內會自動出現。</div></div>') +
     growthHTML(VIEW) +
     (logs.length ? '<div class="card"><details><summary>📜 ' + esc(VIEW.round) + ' 紀錄（' + logs.length + '）</summary>' +
       logs.slice(0, 8).map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
@@ -530,39 +541,66 @@ function render() {
   save();
 }
 
+let LASTPOLL = 0;
 async function poll() {
-  if (busy) return;
+  if (busy) return; LASTPOLL = Date.now();
   try {
     const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store' });
     const d = await r.json();
-    if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連唔到') + '</div>'; return; }
-    if (VIEW && VIEW.round !== d.view.round) { LASTRESULT = null; RESULTROUND = null; LOCALPROMPT = null; }   // ★ 換回合即清
+    if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連接不上') + '</div>'; return; }
+    if (VIEW && VIEW.round !== d.view.round) {                                                            // ★ 換回合即清；並把上一回合的快照留在本機（v6：不再寫 Notion）
+      LASTRESULT = null; RESULTROUND = null; LOCALPROMPT = null;
+      try { const h = JSON.parse(localStorage.getItem(SKEY + '_hist') || '[]');
+        const tok = Object.fromEntries((VIEW.wallet?.tokens || []).map(t => [t.key, t.count]));
+        if (!h.some(x => x.round === VIEW.round)) { h.push({ round: VIEW.round, ...tok, gold: VIEW.wallet?.gold || 0 }); localStorage.setItem(SKEY + '_hist', JSON.stringify(h)); } } catch {}
+    }
     if (!d.view.pending) LOCALPROMPT = null;                                                                  // ★ 伺服器收咗 prompt → 本地都收
     if (d.view.pending && (!VIEW || JSON.stringify(d.view.pending) !== JSON.stringify(VIEW.pending))) LOCALPROMPT = null;
-    VIEW = d.view; everOK = true; render();
+    VIEW = d.view; everOK = true;
+    try { const h = JSON.parse(localStorage.getItem(SKEY + '_hist') || '[]'); const srv = (VIEW.history || []).filter(x => String(x.round).includes('而家'));
+      const seen = new Set(h.map(x => x.round)); const rest = (VIEW.history || []).filter(x => !String(x.round).includes('而家') && !seen.has(x.round));
+      VIEW.history = [...h, ...rest, ...srv]; } catch {}
+    render();
     $('status').textContent = '更新於 ' + new Date().toLocaleTimeString('zh-HK');
   } catch {
-    $('status').textContent = '連線唔到，重試中⋯';
+    $('status').textContent = '連線不上，重試中⋯';
     if (VIEW) { everOK = false; render(); }
   }
 }
 
+// ═══ v7 寄件匣：網絡不穩時，動作先存本機，每 4 秒重試直至送達 ═══
+const OKEY = SKEY + '_outbox';
+const getOut = () => { try { return JSON.parse(localStorage.getItem(OKEY) || 'null'); } catch { return null; } };
+const setOut = v => { try { v ? localStorage.setItem(OKEY, JSON.stringify(v)) : localStorage.removeItem(OKEY); } catch {} };
+async function postAct(a) {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 9000);
+  try { const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ID, token: TOKEN, action: a }), signal: ctl.signal }); return await r.json(); }
+  finally { clearTimeout(tm); }
+}
+function applyResp(d) {
+  if (d.view) { VIEW = d.view; everOK = true; }
+  if (d.text) { LASTRESULT = d.text; RESULTROUND = d.view ? d.view.round : (VIEW && VIEW.round); }
+  if (!d.ok && d.msg) { LASTRESULT = d.msg; RESULTROUND = VIEW && VIEW.round; }
+  LOCALPROMPT = d.immediate || null;
+}
 async function act(a) {
   if (busy) return; busy = true; buzz(12);
   document.querySelectorAll('button[data-act]').forEach(b => { b.disabled = true; });
-  try {
-    const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: ID, token: TOKEN, action: a }) });
-    const d = await r.json();
-    if (d.view) { VIEW = d.view; everOK = true; }
-    if (d.text) { LASTRESULT = d.text; RESULTROUND = d.view ? d.view.round : (VIEW && VIEW.round); }
-    if (!d.ok && d.msg) { LASTRESULT = d.msg; RESULTROUND = VIEW && VIEW.round; }
-    LOCALPROMPT = d.immediate || null;
-    render(); buzz(22);
-  } catch {
-    LASTRESULT = '網絡唔穩，撳多次。'; render();
+  try { const d = await postAct(a); applyResp(d); render(); buzz(22); }
+  catch {
+    setOut({ a, t: Date.now(), round: VIEW && VIEW.round });          // 存入寄件匣
+    LASTRESULT = '已記下你的選擇。網絡不穩，正在等候送出——不必再按。'; RESULTROUND = VIEW && VIEW.round;
+    LOCALPROMPT = null; render();
   } finally { busy = false; }
 }
+async function flushOut() {
+  const o = getOut(); if (!o || busy) return;
+  if (VIEW && o.round && o.round !== VIEW.round) { setOut(null); return; }   // 換了回合就作廢
+  busy = true;
+  try { const d = await postAct(o.a); setOut(null); applyResp(d); render(); buzz(22); }
+  catch { /* 下次再試 */ } finally { busy = false; }
+}
+setInterval(flushOut, 4000); window.addEventListener('online', flushOut);
 
 document.addEventListener('pointerdown', e => {
   const b = e.target.closest('button[data-act]');
@@ -582,10 +620,10 @@ window.addEventListener('pagehide', save);
 window.addEventListener('online', poll);
 
 if (!ID || !TOKEN) {
-  $('app').innerHTML = '<div class="err">條連結唔完整。<br>請用 MC 發俾你嗰條完整連結。</div>';
+  $('app').innerHTML = '<div class="err">連結不完整。<br>請使用主持人發給你的完整連結。</div>';
 } else {
   if (restore()) render();
-  poll(); setInterval(poll, 5000);
+  poll(); setInterval(() => { if (document.hidden) return; const idle = VIEW && !VIEW.pending && !LOCALPROMPT; if (idle && (Date.now() - LASTPOLL) < 15000) return; poll(); }, 8000);
 }
 </script>
 </body>
