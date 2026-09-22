@@ -248,7 +248,7 @@ const stagger = (sel, base = .08) => document.querySelectorAll(sel).forEach((el,
 // ── 各頁 fallback HTML ──
 function html(s, st) {
   const k = s.kind, rd = st.revealData || {}, rv = st.reveal || 0;
-  if (k === 'title') return `<div class="slide"><div class="sub" style="font-size:3.4vh">${esc(s.body)}</div><div class="rule"></div><h1 style="font-size:9vh">${esc(s.title)}</h1><div class="rule"></div><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">提摩太團契 · 秋令營 2026</div></div>`;
+  if (k === 'title') return `<div class="slide"><div class="sub" style="font-size:3.4vh">你正在用甚麼，衡量自己的一生？</div><div class="rule"></div><h1 style="font-size:9vh">人生追尋 · 瓦器</h1><div class="rule"></div><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">提摩太團契 · 秋令營 2026</div></div>`;
   if (k === 'round') return `<div class="slide lines"><div class="sub" style="font-size:3vh;letter-spacing:.3em">${esc(s.round)}</div><h1 style="font-size:11vh">${esc(s.title)}</h1><div class="sub" style="font-size:4vh">${esc(s.sub)}</div><div class="rule"></div><div class="body" style="font-size:3vh;text-align:center">${esc(s.body)}</div></div>`;
   if (k === 'choose') return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">${esc(s.round)}</div><h1 style="font-size:6.5vh">${esc(s.title)}</h1><div class="sub" style="font-size:2.6vh;margin-top:1vh">${esc(s.sub)}</div>
     <div class="grid">${(s.items || []).map(it => `<div class="st"><div class="e">${it.emoji}</div><div class="n">${esc(it.name)}</div><div class="t">${esc(it.task)}</div></div>`).join('')}</div>
