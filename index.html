@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>人生追尋 · 畢士大版 · Live Board</title>
+<title>人生追尋 · 瓦器 · Live Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -70,6 +70,7 @@ h1{font-family:var(--cjk);font-size:clamp(24px,4vw,40px);letter-spacing:.14em;ma
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .empty{text-align:center;color:var(--muted);font-family:var(--cjk);padding:60px 0;font-size:16px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 
 </head>
@@ -77,14 +78,14 @@ h1{font-family:var(--cjk);font-size:clamp(24px,4vw,40px);letter-spacing:.14em;ma
 <div class="pool-fx"><span></span><span></span><span></span></div>
 <div class="wrap">
   <header>
-    <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
-    <h1>人生追尋 · 畢士大版</h1>
+    <div class="greek">你正在用甚麼，衡量自己的一生？</div>
+    <h1>人生追尋 · 瓦器</h1>
     <div class="ripple"></div>
     <div class="status" id="status"><span class="dot"></span>連線中⋯</div>
   </header>
   <div class="podium" id="podium"></div>
   <div class="pool-edge"></div>
-  <div class="grid" id="grid"><div class="empty">等着池邊的人⋯⋯</div></div>
+  <div class="grid" id="grid"><div class="empty">等待主持人開啟排名。</div></div>
   <div class="legend">
     <span><i style="background:var(--g)"></i>🟢</span><span><i style="background:var(--r)"></i>🔴</span>
     <span><i style="background:var(--p)"></i>🟣</span><span><i style="background:var(--y)"></i>🟡</span>
@@ -101,7 +102,7 @@ const count=t=>COLORS.reduce((s,[k])=>s+(t?.[k]||0),0);
 
 // 鼓勵／冇惡意串串貢（畢士大味，唔 leak 加權）
 const ENC={
-  p1:['全場的目光都在你身上——池邊的人都望着你。','走得最前的一個。下一回合，你能快過自己嗎？','守住了池口。但記住：水動的那一刻，才是關鍵。'],
+  p1:['全場的目光都在你身上——池邊的人都望着你。','走得最前的一個。下一回合，你能快過自己嗎？','名次仍在變動，下一次選擇即將開始。'],
   p2:['一步之遙。這一次差一點，下一次未必。','銀色也很好看——但你不是為銀色而來的。','緊貼第一。等他失足，還是自己走快一點？'],
   p3:['站上台了。上面還有兩個位置，看你怎樣攀。','季軍是最有故事的位置——通常都不甘心。','進了三甲。下一回合，把他們的也拿過來。'],
   hi:['有形有勢，繼續積累。','穩妥。但穩妥進不了三甲——想想辦法。','只差一步便登上頒獎台。哪一個站最划算？','你在積累。問題是：積累對了嗎？'],
@@ -142,22 +143,24 @@ function render(list){
       <div class="ct">${count(p.tokens)} 代幣${p.gold?` · 🥇${p.gold}`:''}</div>
       ${jar(p,maxTotal,false)}
       <div class="en">${pickEnc(pool,p.id,count(p.tokens))}</div>
-    </div>`;}).join('') : (ranked.length? '' : '<div class="empty">還沒有人進場。池邊仍是靜的。</div>');
+    </div>`;}).join('') : (ranked.length? '' : '<div class="empty">排名暫不顯示，請留意主持人。</div>');
 }
-let lastOk=0;
+let lastOk=0, polling=false, lastData=null;
 async function poll(){
+  if(polling)return;polling=true;
   try{
     const r=await fetch(BASE+'/board',{cache:'no-store'});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
-    render(Array.isArray(data)?data:[]);
+    if(!Array.isArray(data))throw new Error('資料格式無效');
+    const key=JSON.stringify(data);if(key!==lastData){render(data);lastData=key;}
     lastOk=Date.now();
     $('status').className='status';
-    $('status').innerHTML=`<span class="dot"></span>LIVE · ${data.length} 位玩家 · ${new Date().toLocaleTimeString('zh-HK')}`;
+    $('status').innerHTML=`<span class="dot"></span>${data.length?'LIVE · '+data.length+' 位玩家':'等待主持人'} · ${new Date().toLocaleTimeString('zh-HK')}`;
   }catch(e){
     $('status').className='status err';
     $('status').innerHTML=`<span class="dot"></span>連線不上（${e.message}）· ${lastOk?'顯示上一次的資料':'尚無資料'} · 重試中`;
-  }
+  }finally{polling=false;}
 }
 poll(); setInterval(poll,3000);
 </script>

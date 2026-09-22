@@ -211,12 +211,13 @@ details[open] summary::before{content:"▾ "}
 .offline{background:rgba(217,119,87,.11);border:1px solid rgba(217,119,87,.36);color:var(--clay-deep);
   border-radius:11px;padding:10px;text-align:center;font-size:12.5px;margin-bottom:12px;font-family:var(--cjk)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="greek">θέλεις ὑγιὴς γενέσθαι;</div>
+    <div class="greek">你正在用甚麼，衡量自己的一生？</div>
     <h1>人生手冊</h1>
   </header>
   <div id="app"></div>
@@ -230,10 +231,10 @@ const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1
 const $ = id => document.getElementById(id);
 const qp = new URLSearchParams(location.search);
 const ID = qp.get('id') || '', TOKEN = qp.get('t') || '';
-const SKEY = 'bethesda_player_' + ID;
+const SKEY = 'bethesda_player_B1_' + ID;
 
 let VIEW = null, LOCALPROMPT = null, LASTRESULT = null, RESULTROUND = null, ACTIONS = [], busy = false;
-let everOK = false, PREVTOK = null;
+let everOK = false, PREVTOK = null, renderedKey = null, pollGeneration = 0, polling = false;
 
 const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g,
   c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -509,7 +510,7 @@ function promptHTML(p) {
   const opts = p.options.map(o => btn('opt' + (o.star ? ' star' : ''), actOf(p, o),
     esc(o.label) + (o.sub ? '<span class="s">' + esc(o.sub) + '</span>' : ''))).join('');
   const icon = p.kind === 'station' ? '🧭' : p.kind === 'lookback' ? '🕯' : '📖';
-  const inc = (p.incentives || []).length ? '<div class="inc">' + p.incentives.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' : '';
+  const inc = ''; // Event options never disclose station benefits before submission.
   const ms = p.mission ? '<div class="mission">🎯 只有你看見：' + esc(p.mission) + '</div>' : '';
   return '<div class="prompt"><h2>' + icon + ' ' + esc(p.title) + '</h2>' +
     (p.body ? '<div class="body">' + esc(p.body) + '</div>' : '') + inc +
@@ -518,12 +519,17 @@ function promptHTML(p) {
 
 function render() {
   if (!VIEW) return;
+  const key = JSON.stringify([VIEW, LOCALPROMPT, LASTRESULT, RESULTROUND, everOK, getOut()]);
+  if (key === renderedKey) return; renderedKey = key;
+  const opened = [...document.querySelectorAll('#app details')].map(x => x.open);
+  const scroll = window.scrollY;
   ACTIONS = [];
   const p = LOCALPROMPT || VIEW.pending;
   const logs = (VIEW.log || []).slice().reverse();
   $('app').innerHTML =
     (everOK ? '' : '<div class="offline">📵 暫時連不上伺服器，顯示的是上一次的紀錄。網絡恢復後會自動更新。</div>') +
-    (getOut() ? '<div class="offline">📨 有一個選擇正在等候送出。網絡一恢復便會自動送達，不必再按。</div>' : '') +
+    (VIEW.choiceBenefit && !(LASTRESULT||'').includes(VIEW.choiceBenefit) ? '<div class="result"><span class="tag">本回合已解鎖的站點加成</span>'+esc(VIEW.choiceBenefit)+'</div>' : '') +
+    (getOut() ? '<div class="offline">📨 有一個操作尚未收到確認。重試會沿用原操作編號，避免重複計分。<button onclick="retryPending()">重試此操作</button><button onclick="clearReviewedOutbox()">主持人已核對：解除待處理</button></div>' : '') +
     stageHTML(VIEW) +
     badgeHTML(VIEW) +
     walletHTML(VIEW) +
@@ -537,18 +543,23 @@ function render() {
     (logs.length ? '<div class="card"><details><summary>📜 ' + esc(VIEW.round) + ' 紀錄（' + logs.length + '）</summary>' +
       logs.slice(0, 8).map(l => '<div class="logrow"><span>' + esc(l.act) + '</span><span>' + esc(l.note) + '</span></div>').join('') +
       '</details></div>' : '');
+  document.querySelectorAll('#app details').forEach((x,i) => { x.open = !!opened[i]; });
+  if (getOut()) document.querySelectorAll('button[data-act]').forEach(x => x.disabled = true);
+  window.scrollTo(0, scroll);
   PREVTOK = Object.fromEntries((VIEW.wallet?.tokens || []).map(t => [t.key, t.count]));
   save();
 }
 
 let LASTPOLL = 0;
 async function poll() {
-  if (busy) return; LASTPOLL = Date.now();
+  if (busy || polling) return; polling = true; const generation = pollGeneration; LASTPOLL = Date.now();
   try {
     const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store' });
     const d = await r.json();
+    if (generation !== pollGeneration) return;
     if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連接不上') + '</div>'; return; }
-    if (VIEW && VIEW.round !== d.view.round) {                                                            // ★ 換回合即清；並把上一回合的快照留在本機（v6：不再寫 Notion）
+    if(VIEW&&VIEW.gameEpoch!==d.view.gameEpoch){LASTRESULT=null;RESULTROUND=null;LOCALPROMPT=null;try{localStorage.removeItem(SKEY+'_hist');}catch{}}
+    else if (VIEW && VIEW.round !== d.view.round) {                                                            // ★ 換回合即清；並把上一回合的快照留在本機（v6：不再寫 Notion）
       LASTRESULT = null; RESULTROUND = null; LOCALPROMPT = null;
       try { const h = JSON.parse(localStorage.getItem(SKEY + '_hist') || '[]');
         const tok = Object.fromEntries((VIEW.wallet?.tokens || []).map(t => [t.key, t.count]));
@@ -563,44 +574,53 @@ async function poll() {
     render();
     $('status').textContent = '更新於 ' + new Date().toLocaleTimeString('zh-HK');
   } catch {
+    if (generation !== pollGeneration) return;
     $('status').textContent = '連線不上，重試中⋯';
     if (VIEW) { everOK = false; render(); }
-  }
+  } finally { polling = false; }
 }
 
 // ═══ v7 寄件匣：網絡不穩時，動作先存本機，每 4 秒重試直至送達 ═══
-const OKEY = SKEY + '_outbox';
+const OKEY = 'bethesda_player_A1_' + ID + '_outbox'; // Preserve unconfirmed A1 operations for explicit review.
 const getOut = () => { try { return JSON.parse(localStorage.getItem(OKEY) || 'null'); } catch { return null; } };
 const setOut = v => { try { v ? localStorage.setItem(OKEY, JSON.stringify(v)) : localStorage.removeItem(OKEY); } catch {} };
-async function postAct(a) {
+async function postAct(a, context, operationId) {
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 9000);
-  try { const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ID, token: TOKEN, action: a }), signal: ctl.signal }); return await r.json(); }
+  try { const r = await fetch(BASE + '/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ID, token: TOKEN, action: a, context, operationId }), signal: ctl.signal }); return await r.json(); }
   finally { clearTimeout(tm); }
 }
 function applyResp(d) {
   if (d.view) { VIEW = d.view; everOK = true; }
-  if (d.text) { LASTRESULT = d.text; RESULTROUND = d.view ? d.view.round : (VIEW && VIEW.round); }
-  if (!d.ok && d.msg) { LASTRESULT = d.msg; RESULTROUND = VIEW && VIEW.round; }
+  if (d.text) { LASTRESULT = d.text; RESULTROUND = d.view ? d.view.round : VIEW?.round; }
+  if (!d.ok) { LASTRESULT = d.msg || '操作未能確認，請通知主持人。'; RESULTROUND = VIEW?.round; }
   LOCALPROMPT = d.immediate || null;
 }
 async function act(a) {
-  if (busy) return; busy = true; buzz(12);
-  document.querySelectorAll('button[data-act]').forEach(b => { b.disabled = true; });
-  try { const d = await postAct(a); applyResp(d); render(); buzz(22); }
-  catch {
-    setOut({ a, t: Date.now(), round: VIEW && VIEW.round });          // 存入寄件匣
-    LASTRESULT = '已記下你的選擇。網絡不穩，正在等候送出——不必再按。'; RESULTROUND = VIEW && VIEW.round;
-    LOCALPROMPT = null; render();
+  if (busy || getOut()) return;
+  if (!VIEW?.actionContext) { LASTRESULT = '請先連線更新目前環節。'; RESULTROUND = VIEW?.round; render(); return; }
+  busy = true; pollGeneration++; buzz(12);
+  const pending = { operationId:crypto.randomUUID(), a, context: VIEW.actionContext, t: Date.now(), round: VIEW.round, needsReview: true };
+  setOut(pending);
+  if (!getOut()) { busy = false; alert('無法在此裝置保存操作，尚未送出。請通知主持人。'); return; }
+  render();
+  try {
+    const d = await postAct(a, pending.context, pending.operationId);
+    if (d.ok || (!d.needsReview && d.msg && !d.msg.includes('重試'))) setOut(null);
+    applyResp(d); render();
+  } catch {
+    LASTRESULT = '操作結果尚未確認。請按重試，系統會以原操作編號核對，避免重複計分。'; RESULTROUND = VIEW.round; render();
   } finally { busy = false; }
 }
-async function flushOut() {
-  const o = getOut(); if (!o || busy) return;
-  if (VIEW && o.round && o.round !== VIEW.round) { setOut(null); return; }   // 換了回合就作廢
-  busy = true;
-  try { const d = await postAct(o.a); setOut(null); applyResp(d); render(); buzz(22); }
-  catch { /* 下次再試 */ } finally { busy = false; }
+async function retryPending(){
+ const p=getOut();if(!p||busy)return;
+ if(!p.operationId){alert('這是舊版待核對操作，請由主持人核對後處理。');return;}
+ busy=true;try{const d=await postAct(p.a,p.context,p.operationId);if(d.ok||(!d.needsReview&&d.msg&&!d.msg.includes('重試')))setOut(null);applyResp(d);render();}catch{LASTRESULT='仍未收到確認，請稍後以同一操作重試。';render();}finally{busy=false;}
 }
-setInterval(flushOut, 4000); window.addEventListener('online', flushOut);
+function clearReviewedOutbox() {
+  if (!confirm('主持人已核對錢包與紀錄，並指示解除此待核對操作？這不會補送或撤回任何分數。')) return;
+  setOut(null); renderedKey = null; render(); poll();
+}
+// A 批：未知寫入結果必須由主持人核對；持久自動重試由 B 批處理。
 
 document.addEventListener('pointerdown', e => {
   const b = e.target.closest('button[data-act]');
