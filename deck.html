@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>人生追尋 · 畢士大版 · 大螢幕</title>
+<title>人生追尋 · 瓦器 · 大螢幕</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
 <!-- 池邊衝刺 QR（qrcodejs · 純前端生成；載入失敗會 fallback 顯示大字 PIN ＋ 網址）-->
@@ -163,6 +163,18 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 #board.on{opacity:1;pointer-events:auto}
 #status{position:absolute;right:3.2%;bottom:2.6%;font-size:1.4vh;color:var(--muted);z-index:30;font-family:var(--serif)}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+.update-only *{animation:none!important;opacity:1!important}
+
+/* C1: readable depth, quiet motion, stable content geometry. */
+:root{--cjk:"Noto Serif TC","Songti TC",serif}
+#frame{isolation:isolate;background:#171713}
+#frame::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(8,12,12,.16),transparent 52%)}
+#content{z-index:3}.slide .body{max-width:76ch;line-height:1.8;text-wrap:pretty}.slide h1{text-wrap:balance;line-height:1.35}.reveal-question h1{font-size:6.8vh!important}.reveal-question .body{font-size:3.4vh;line-height:2;margin-top:4vh}.storm-still .body{max-width:36em;font-size:3.2vh}.opts{gap:1.4vh}.opt{line-height:1.55!important}.slide{overflow-y:auto;scrollbar-width:thin}.with-art .body{text-shadow:none}.stagger{will-change:auto}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.wt .in{transition:none!important}}
+#frame.ranking-layout .slide{padding:7% 8%;align-items:center;text-align:center;background:rgba(240,238,230,.87)}
+#frame.with-art .reveal-question h1{font-size:5vh!important}
+#status[data-art-missing]:not([data-art-missing=""])::after{content:" · " attr(data-art-missing);color:#a33}
+#stagebar{background:rgba(245,240,230,.92);border-radius:20px;padding:5px 12px;color:#743821}#frame.dark-art #stagebar{background:rgba(30,26,22,.92)}
 </style>
 </head>
 <body>
@@ -195,36 +207,38 @@ const ART = {
 const DARK_ART = new Set(['storm', 'reveal']);   // 深色油畫 → 文字轉淺色（風向頁亦用 storm 底圖）
 function artKeyFor(s, st) {
   if (s.kind === 'title') return 'title';
-  if (s.kind === 'storm') return 'storm';
+  if (s.kind === 'storm') return 'R3';
   if (s.kind === 'auction') return 'auction';
-  if (s.kind === 'aftermath') return 'aftermath';
-  if (s.kind === 'reveal') return 'reveal';
-  if (s.kind === 'wind') return 'storm';
-  if (s.round === 'R5') return s.kind === 'storm' ? 'storm' : 'aftermath';
+  if (s.kind === 'aftermath') return 'R6';
+  if (s.kind === 'reveal') return 'R6';
+  if (s.kind === 'wind') return 'R3';
+  if (s.round === 'R5') return 'R6';
   if (s.round === 'R6') return 'R6';
   return s.round || 'title';
 }
 // ─────────────
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
-let CUR = null, LOCAL = null, PINNED = false, LAST = null, timerEnd = 0, timerTick = null, bgFlip = false;
+let CUR = null, LOCAL = null, PINNED = false, LAST = null, timerEnd = 0, timerTick = null, bgFlip = false, showVersion = 0, polling = false, displayedPage = null, artReady = false;
 
 const ENTER = { title: 'enter-fade', round: 'enter-zoom', choose: 'enter-zoom', situation: 'enter-turn', event: 'enter-flash', aftermath: 'enter-mist', storm: 'enter-shake', auction: 'enter-coins', reveal: 'enter-fade', rush: 'enter-zoom', wind: 'enter-mist', lookback: 'enter-fade', settle: 'enter-zoom' };
 const TOK = [['green', '🟢', '事業'], ['red', '🔴', '關係'], ['purple', '🟣', '內在'], ['yellow', '🟡', '享樂'], ['blue', '🔵', '信仰']];
 
 // ── 嘗試 Canva 底圖；冇就 fallback ──
-function setBg(url) {
+function setBg(url, version) {
   const a = $('bgA'), b = $('bgB'); const next = bgFlip ? a : b, prev = bgFlip ? b : a; bgFlip = !bgFlip;
   if (!url) { next.classList.remove('on'); prev.classList.remove('on'); return Promise.resolve(false); }
-  return new Promise(res => { const img = new Image(); img.onload = () => { next.style.backgroundImage = `url(${url})`; next.classList.add('on'); prev.classList.remove('on'); res(true); };
-    img.onerror = () => { next.classList.remove('on'); prev.classList.remove('on'); res(false); }; img.src = url; });
+  return new Promise(res => { const img = new Image(); img.onload = () => { if(version!==showVersion){res(false);return;} next.style.backgroundImage = `url(${url})`; next.classList.add('on'); prev.classList.remove('on'); res(true); };
+    img.onerror = () => { if(version!==showVersion){res(false);return;} next.classList.remove('on'); prev.classList.remove('on'); res(false); }; img.src = url; });
 }
 let artFlip = false;
-function loadImg(url) { return new Promise(res => { const i = new Image(); i.onload = () => res(true); i.onerror = () => res(false); i.src = url; }); }
-async function setArt(key) {
+function loadImg(url) { return new Promise(res=>{const i=new Image();const t=setTimeout(()=>res(false),3500);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=url;}); }
+async function setArt(key, version) {
   const a = $('artA'), b = $('artB'); const next = artFlip ? a : b, prev = artFlip ? b : a; artFlip = !artFlip;
   const local = 'art/' + key + '.jpg';
-  const url = (await loadImg(local)) ? local : (ART[key] && await loadImg(ART[key]) ? ART[key] : null);
+  const url=(await loadImg(local))?local:null;
+  $('status').dataset.artMissing=url?'':'油畫未能載入，文字仍可使用。';
+  if(version!==showVersion)return false;
   if (!url) { next.classList.remove('on'); prev.classList.remove('on'); return false; }
   next.style.backgroundImage = `url(${url})`; next.classList.toggle('dark', DARK_ART.has(key)); next.classList.add('on'); prev.classList.remove('on');
   return true;
@@ -256,14 +270,13 @@ function html(s, st) {
     <div class="hint">📱 你的風向，在手機上</div></div>`;
   if (k === 'lookback') return `<div class="slide"><div class="sub" style="font-size:2.4vh;letter-spacing:.3em">${esc(s.round)} · 🕯</div><h1 style="font-size:8vh;margin:1.2vh 0 2vh">${esc(s.title)}</h1>
     <div class="body lines" style="font-size:3.2vh;text-align:center">${esc(s.body).split('\n').filter(x => x.trim()).map(l => `<div>${l}</div>`).join('')}</div><div class="hint">${esc(s.sub)}</div></div>`;
-  if (k === 'storm') return `<div class="rain">${Array.from({ length: 60 }, (_, i) => `<i style="left:${(i * 1.7) % 100}%;animation-delay:${(i % 10) * .11}s;animation-duration:${.9 + (i % 5) * .12}s"></i>`).join('')}</div>
-    <div class="slide lines"><h1 style="font-size:11vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.2vh;text-align:center">${esc(s.body)}</div></div>`;
+  if(k==='storm')return `<div class="slide storm-still"><div class="sub">人生的風暴</div><h1>${esc(s.title)}</h1><div class="rule"></div><div class="body">${esc(s.body)}</div></div>`;
   if (k === 'auction') return `<div class="coins">${Array.from({ length: 28 }, (_, i) => `<i style="left:${(i * 3.6) % 100}%;animation-delay:${(i % 7) * .22}s"></i>`).join('')}</div>
     <div class="slide lines"><h1 style="font-size:10vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.4vh;text-align:center">${esc(s.body)}</div></div>`;
   if (k === 'rush') {                                                     // 🏊 池邊衝刺：QR ＋ PIN（由 /state.kahoot 帶入）
     const kh = st.kahoot || {}; const pin = kh.pin || '';
     return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">🏊 池邊衝刺 · ${esc(s.round)}</div>
-      <h1 style="font-size:7vh;margin:1vh 0 0">水動了</h1>
+      <h1 style="font-size:7vh;margin:1vh 0 0">倒數開始</h1>
       <div class="rushwrap">
         <div class="qrbox ${pin ? 'live' : ''}" id="qrbox"><div class="nourl">QR 生成中⋯</div></div>
         <div class="rushinfo">
@@ -276,17 +289,9 @@ function html(s, st) {
   }
   if (k === 'reveal') {
     if (rv <= 1) return `<div class="slide"><div class="big">遊戲完結</div><div class="rank">六個回合。一個人生。</div></div>`;
-    if (rv === 8) { const t = rd.tags || {}; const gs = rd.groups || []; return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">這一局，全場的決定</div>
-      <div class="wts" style="margin-top:3vh">${[['順應', t.yield, '#9E4529'], ['自主', t.self, '#2c6b3f'], ['迴避', t.avoid, '#6B6963']].map(([n, v, c], i) => `<div class="pd" style="animation-delay:${.3 + i * .35}s"><div class="nm" style="color:${c};font-size:9vh">${v ?? 0}%</div><div class="sc" style="font-family:var(--cjk);font-size:3vh">${n}</div></div>`).join('')}</div>
-      <div class="rank" style="font-size:2.8vh;margin-top:3vh">跟從誘因的比率：${rd.followed ?? 0}%</div>
-      <div class="col" style="margin-top:2.5vh;min-width:70vh">${gs.map(g => `<div class="row ${g.ok ? 'up' : 'down'}"><b>${esc(g.round)}</b>${esc(g.text)}</div>`).join('')}</div>
-      <div class="hint">📱 你這一局，在手機上</div></div>`; }
-    if (rv >= 10) return `<div class="slide lines"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">約翰福音五章</div><h1 style="font-size:7vh">畢士大池</h1><div class="rule"></div>
-      <div class="body" style="font-size:3vh;text-align:center">眾人爭先落水，落到水裏的人得到的是空的。<br>被留在池邊三十八年、「沒有人」的那一位，<br>遇見了耶穌。</div>
-      <div class="sub" style="font-size:3.4vh;margin-top:4vh">θέλεις ὑγιὴς γενέσθαι;</div></div>`;
-    if (rv >= 9) { const rw = rd.rewrite || []; return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">🕯 回望 · 最多人想改寫的決定</div>
-      <div class="col" style="margin-top:3vh;min-width:60vh">${rw.length ? rw.map((x, i) => `<div class="row"><b>${x.n}</b>${esc(x.label)}</div>`).join('') : '<div class="row">（沒有人選擇改寫。）</div>'}</div>
-      <div class="rank" style="font-size:2.6vh;margin-top:3vh">${rd.rewriteTotal ? `${rd.rewriteTotal} 人回望了自己的路。` : ''}</div></div>`; }
+    if(rv===8)return `<div class="slide reveal-question"><div class="sub">第二層揭示</div><h1>如果連信仰，<br>也成了得分的方法呢？</h1><div class="body">我們是否只是把上帝，<br>放進另一個需要經營的範疇？</div></div>`;
+    if(rv===9)return `<div class="slide reveal-question"><h1>如果醫治，<br>從來不在池子裏呢？</h1><div class="rule"></div><div class="body">ἄνθρωπον οὐκ ἔχω<br>我沒有人。</div></div>`;
+    if(rv>=10)return `<div class="slide reveal-question"><h1>今晚，我們去到那個池邊。</h1><div class="body">現在，拿回你的瓦器。<br>把你留下的、失去的、捨不得的，<br>一一加上去。</div></div>`;
     if (rv === 2) { const p = rd.public3 || []; const pd = (x, c, m) => x ? `<div class="pd ${c}"><div class="nm">${esc(x.name)}</div><div class="sc">${x.n} 枚</div><div class="base">${m}</div></div>` : '';
       return `<div class="slide"><div class="sub" style="font-size:2.8vh;letter-spacing:.3em">公開榜 · 按代幣總數</div><div class="podium">${pd(p[1], 'pd2', 2)}${pd(p[0], 'pd1', 1)}${pd(p[2], 'pd3', 3)}</div></div>`; }
     if (rv === 3) { const w = rd.weights || {}; return `<div class="slide"><div class="big" style="font-size:6vh">但是——</div><div class="rank" style="font-size:2.8vh;letter-spacing:.3em">每一種代幣，重量並不一樣</div>
@@ -300,28 +305,37 @@ function html(s, st) {
   return `<div class="slide"><h1 style="font-size:6vh">${esc(s.title)}</h1><div class="body" style="font-size:3vh">${esc(s.body)}</div></div>`;
 }
 
+let displayedHasBg=false;
 async function show(st, force) {
   const s = st.slide; if (!s) return;
-  const key = `${s.id}|${st.reveal}|${st.mode}|${st.kahoot?.pin || ''}`;   // PIN 改咗 → 衝刺頁即時重繪
+  const key = JSON.stringify([s, st.reveal, st.mode, st.kahoot, st.revealData]);
   if (!force && key === LAST) return; LAST = key;
+  const version=++showVersion;
+  const pageKey=`${s.id}|${st.reveal}`;const changedPage=pageKey!==displayedPage;
   $('board').classList.toggle('on', st.mode === 'board');
-  const bgUrl = SLIDES_DIR + s.id + (s.kind === 'reveal' ? `_p${st.reveal || 1}` : '') + '.png';
-  const hasBg = await setBg(bgUrl);
-  const artKey = artKeyFor(s, st);
-  const hasArt = hasBg ? (setArt('__none__'), false) : await setArt(artKey);
+  const bgUrl = SLIDES_DIR + 'C1_' + s.id + (s.kind === 'reveal' ? `_p${st.reveal || 1}` : '') + '.png';
+  // 同頁資料更新不再等圖片，也不重新開始倒數。
+  let hasBg=displayedHasBg,hasArt=artReady;
+  if(changedPage){
+    hasBg=await setBg(null,version);if(version!==showVersion)return;
+    hasArt=await setArt(hasBg?'__none__':artKeyFor(s,st),version);if(version!==showVersion)return;
+    artReady=hasArt;displayedHasBg=hasBg;
+  }
+  const artKey=artKeyFor(s,st);
   $('frame').classList.toggle('with-art', hasArt);
   $('frame').classList.toggle('dark-art', hasArt && DARK_ART.has(artKey));
-  const c = $('content'); c.className = 'layer ' + (ENTER[s.kind] || 'enter-fade');
-  if (s.kind === 'event') { $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go'); }
-  c.innerHTML = hasBg && s.kind !== 'reveal' && s.kind !== 'rush' ? '' : html(s, st);   // 有 Canva 底圖就唔畫 fallback（揭示頁／衝刺頁例外：數據／QR 要 overlay）
+  $('frame').classList.toggle('ranking-layout',s.kind==='reveal'&&st.reveal<8);
+  const c = $('content'); c.className = 'layer ' + (changedPage ? (ENTER[s.kind] || 'enter-fade') : 'update-only');
+  if (changedPage && s.kind === 'event') { $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go'); }
+  c.innerHTML = html(s, st);   // 有 Canva 底圖就唔畫 fallback（揭示頁／衝刺頁例外：數據／QR 要 overlay）
   if (hasBg && s.kind === 'reveal') c.querySelectorAll('.slide').forEach(el => el.style.background = 'transparent');
   if (s.kind === 'rush') drawQR(st.kahoot || {});
   stagger('.lines>*', .22); stagger('.st', .1); stagger('.opt', .14); stagger('.pd', .35); stagger('.row', .12);
-  if (s.kind === 'reveal' && st.reveal === 3) setTimeout(() => document.querySelectorAll('.wt').forEach((el, i) => setTimeout(() => el.classList.add('flip'), 500 + i * 450)), 900);
+  if (s.kind === 'reveal' && st.reveal === 3) { if(!changedPage)c.querySelectorAll('.wt').forEach(el=>el.classList.add('flip'));else setTimeout(()=>{if(version!==showVersion)return;c.querySelectorAll('.wt').forEach((el,i)=>setTimeout(()=>{if(version===showVersion)el.classList.add('flip');},500+i*450));},900); }
   $('stagebar').innerHTML = s.stage?.stage ? `<span>${esc(s.round)}</span><b>${esc(s.stage.icon)} ${esc(s.stage.stage)}</b><span>${esc(s.stage.age)} · ${esc(s.stage.tag)}</span>` : '';
   const dots = Array.from({ length: s.total }, (_, i) => `<i class="${i === s.seq ? 'on' : ''}"></i>`).join('');
   $('foot').innerHTML = `${esc(s.id)}<span class="dots">${dots}</span>`;
-  startTimer(s.timer);
+  if(changedPage)startTimer(s.kind==='reveal'?0:st.deadline?Math.max(0,(st.deadline-st.ts)/1000):s.timer);displayedPage=pageKey;
 }
 // ── 池邊衝刺 QR：qrcodejs 有就畫；冇（CDN 失敗）就退回顯示網址大字 ──
 function drawQR(kh) {
@@ -340,10 +354,11 @@ function startTimer(sec) {
   tick(); timerTick = setInterval(tick, 500);
 }
 async function poll() {
-  try { const r = await fetch(BASE + '/state', { cache: 'no-store' }); const st = await r.json(); CUR = st;
+  if(polling)return;polling=true;
+  try { const r = await fetch(BASE + '/state', { cache: 'no-store' }); const st = await r.json();if(!r.ok||!st.slide)throw new Error(st.msg||'狀態讀取失敗'); CUR = st;
     $('status').textContent = `同步 ${new Date().toLocaleTimeString('zh-HK')}`;
     if (!PINNED) show(st);
-  } catch { $('status').textContent = '連線不上，重試中'; }
+  } catch { $('status').textContent = '連線不上，重試中'; } finally { polling=false; }
 }
 // 鍵盤：← → 本地翻頁（rehearsal）；P 釘住；Esc 解除
 document.addEventListener('keydown', async e => {

@@ -57,14 +57,16 @@
   .toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:var(--clay-deep);color:#FFF9F5;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;transition:.25s;font-size:14px;z-index:9;max-width:88vw;text-align:center;font-family:var(--cjk)}
   .toast.err{background:var(--red)}
   .toast.show{opacity:1}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 
 </head>
 <body>
 <header>
   <h1>站點 Check-in</h1>
-  <div class="sub">玩家一到站，撳自己個名 → 覆核 → 確認</div>
+  <div class="sub">玩家到站後，請選擇姓名，核對資料，再確認入分。</div>
 </header>
+<div class="cfg"><label>站長憑證 <input id="staff-key" type="password" autocomplete="off"></label><button onclick="staffLogin()">登入／更換憑證</button></div>
 <div class="cfg">
   <select id="station">
     <option value="career">📈 事業站</option><option value="relation">💑 關係站</option>
@@ -116,7 +118,7 @@
 
 <div class="status">
   <span>站：<b id="s-st"></b>　回合：<b id="s-rd"></b></span>
-  <span class="queue" id="q">待傳 0</span>
+  <span class="queue" id="queue-status">待傳 0</span><button onclick="retryQueue()">重試待處理操作</button><button onclick="clearReviewedQueue()">主持人已核對：解除待處理</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -125,6 +127,11 @@
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 // ──────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
+let STAFF_KEY=sessionStorage.getItem('bethesda_staff_A1')||'';
+const authHeaders=()=>({'Content-Type':'application/json',Authorization:'Bearer '+STAFF_KEY});
+async function staffState(){const r=await fetch(BASE+'/staff-state',{headers:authHeaders(),cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'站長登入失敗。');return d;}
+async function staffLogin(){STAFF_KEY=$('staff-key').value.trim();try{const d=await staffState();sessionStorage.setItem('bethesda_staff_A1',STAFF_KEY);$('staff-key').value='';if(d.station!=='all')stSel.value=d.station;stSel.disabled=d.station!=='all';rdSel.value=d.round;syncLabels();await loadRoster();}catch(e){toast(e.message,true);}}
+const esc=s=>String(s??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const stSel=$('station'),rdSel=$('round');
 const stLabel=()=>stSel.options[stSel.selectedIndex].text;
 function syncLabels(){$('s-st').textContent=stLabel();$('s-rd').textContent=rdSel.value;}
@@ -134,10 +141,11 @@ stSel.onchange=rdSel.onchange=syncLabels; syncLabels();
 let ROSTER=[];
 async function loadRoster(){
   try{
-    const r=await fetch(BASE+'/roster',{cache:'no-store'});
-    ROSTER=await r.json();
+    const r=await fetch(BASE+'/roster',{cache:'no-store',headers:authHeaders()});
+    const data=await r.json();if(!r.ok||!Array.isArray(data))throw new Error(data.msg||'名單讀取失敗');
+    ROSTER=data.filter(x=>/^P[0-9]+$/i.test(x.id));
     renderRoster();
-  }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">名單載入失敗，撳「🔄 名單」重試。</div>';}
+  }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">請先登入有效的站長憑證，再重新載入名單。</div>';}
 }
 const nameOf=id=>(ROSTER.find(p=>p.id===id)||{}).name||id;
 
@@ -165,8 +173,8 @@ function renderRoster(list){
     ? (shown.length
         ? shown.map(p=>`<div class="tile ${exact?'hit':''}" onclick="openModal('${p.id}')">
              <div class="num">${p.id.replace(/^P/,'')}</div>
-             <div class="pid">${p.id}</div><div class="pname">${p.name}</div></div>`).join('')
-        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:26px">搵唔到「${q}」<br>試下淨係打號碼，例如 7</div>`)
+             <div class="pid">${p.id}</div><div class="pname">${esc(p.name)}</div></div>`).join('')
+        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:26px">搵唔到「${esc(q)}」<br>試下淨係打號碼，例如 7</div>`)
     : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">未有已綁定玩家。玩家綁定後撳「🔄 名單」。</div>';
   $('qhint').textContent = q ? `${shown.length} / ${ROSTER.length} 位` : (ROSTER.length? `${ROSTER.length} 位玩家`:'');
 }
@@ -205,75 +213,82 @@ function toConfirm(){
   const FIXED={inner:{R2:2,R3:2,R4:2,R5:2},faith:{R3:3,R4:3,R5:6}};
   const fixed=(FIXED[stSel.value]||{})[rdSel.value];
   const scoreTxt=fixed!=null?`固定 ${fixed} 代幣`:`${cur.coins===6?'6 · 出色':cur.coins===3?'3 · 達標':'1 · 嘗試'}`;
-  $('c-line').innerHTML=`<b>${cur.id} ${nameOf(cur.id)}</b><br>${rdSel.value} · ${stLabel()}<br>${scoreTxt}`;
+  $('c-line').innerHTML=`<b>${cur.id} ${esc(nameOf(cur.id))}</b><br>${rdSel.value} · ${stLabel()}<br>${scoreTxt}`;
   showStep('confirm');
 }
 function backToInput(){showStep('input');}
 function closeModal(){$('modal').classList.remove('show');}
 
-function doSubmit(){
-  const payload={type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,tier:cur.coins,coins:cur.coins};
-  enqueue({kind:'checkin',payload}); closeModal(); flush();
+let submitting=false;
+async function doSubmit(){
+  if(submitting)return;submitting=true;
+  const payload={operationId:crypto.randomUUID(),type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,tier:cur.coins,coins:cur.coins};
+  try{const state=await staffState();if(state.round!==payload.round)throw new Error('回合已變更，請核對回合後再入分。');payload.context=state.context;enqueue({kind:'checkin',payload});closeModal();flush();}catch(e){toast(e.message,true);return;}finally{submitting=false;}
   clearQ();   // 清空搜尋，下一位可以即刻打號碼
 }
 
 // ── 本回合紀錄 + 取消（undo）──
-const HK='bethesda_hist';
+const HK='bethesda_hist_A1';
 const getH=()=>{try{return JSON.parse(localStorage.getItem(HK)||'[]')}catch{return[]}};
 const setH=h=>localStorage.setItem(HK,JSON.stringify(h));
 function addH(entry){const h=getH();h.push(entry);setH(h);}
 function openHist(){
-  $('h-ctx').textContent=`${rdSel.value} · ${stLabel()}（呢部 iPad 入嘅）`;
+  $('h-ctx').textContent=`${rdSel.value} · ${stLabel()}（這部裝置記錄的）`;
   const h=getH().map((e,i)=>({...e,i})).filter(e=>e.payload.round===rdSel.value);
   $('h-list').innerHTML=h.length? h.map(e=>`
     <div class="row ${e.undone?'undone':''}">
-      <span>${e.payload.id} ${nameOf(e.payload.id)}　${e.dispense||('base '+e.payload.coins)}</span>
-      ${e.undone?'<span style="color:var(--muted);font-size:12px">已取消</span>'
+      <span>${e.payload.id} ${esc(nameOf(e.payload.id))}　${e.dispense||('base '+e.payload.coins)}</span>
+      ${e.reviewClosed?'<span style="color:var(--muted);font-size:12px">已由主持人核對</span>':e.undone?'<span style="color:var(--muted);font-size:12px">已取消</span>'
         :(e.solid?`<button class="no" onclick="doUndo(${e.i})">↩️ 取消</button>`
         :'<span style="color:var(--muted);font-size:12px">待傳/未確認</span>')}
-    </div>`).join('') : '<div style="color:var(--muted);text-align:center;padding:16px">本回合未有紀錄。</div>';
+    </div>`).join('') : '<div style="color:var(--muted);text-align:center;padding:16px">本回合尚未有紀錄。</div>';
   $('hmodal').classList.add('show');
 }
+const undoBusy=new Set();
 async function doUndo(i){
-  const h=getH(); const e=h[i]; if(!e||e.undone)return;
+  if(undoBusy.has(i))return;
+  const h=getH(); const e=h[i]; if(!e||e.undone||e.reviewClosed)return;
+  if(e.undoPending&&!e.undoRequest){toast('舊版撤回須由主持人核對。',true);return;}
+  undoBusy.add(i);
   try{
-    const r=await fetch(BASE+'/undo',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'undo',id:e.payload.id,round:e.payload.round,station:e.payload.station,solid:e.solid,deltas:e.deltas})});
+    if(!e.undoRequest){const state=await staffState();e.undoRequest={type:'undo',operationId:crypto.randomUUID(),id:e.payload.id,round:e.payload.round,station:e.payload.station,receipt:e.receipt,context:state.context};}e.undoPending=true;setH(h);
+    const r=await fetch(BASE+'/undo',{method:'POST',headers:authHeaders(),
+      body:JSON.stringify(e.undoRequest)});
     const res=await r.json();
-    if(res.ok){ e.undone=true; setH(h); toast(`↩️ ${e.payload.id} 已取消，可以重新入`); openHist(); }
-    else toast(res.msg||'取消失敗',true);
-  }catch{ toast('網絡問題，取消失敗，再試',true); }
+    if(res.ok){ e.undone=true; setH(h); toast(`↩️ ${e.payload.id} 已撤回，可以重新入分。`); openHist(); }
+    else {if(!res.needsReview){e.undoPending=false;setH(h);}toast(res.msg||'取消結果未確認，請通知主持人。',true);}
+  }catch{ toast('網絡問題，撤回結果未確認，請通知主持人核對，請使用重試按鈕。',true); }finally{undoBusy.delete(i);}
 }
 
 // ── 離線佇列 + 送出（成功先入 history，帶 server 回傳嘅 solid 供 undo）──
-const QK='bethesda_queue';
+const QK='bethesda_queue_A1';
 const getQ=()=>{try{return JSON.parse(localStorage.getItem(QK)||'[]')}catch{return[]}};
 const setQ=q=>{localStorage.setItem(QK,JSON.stringify(q));renderQ();};
 function enqueue(p){const q=getQ();q.push(p);setQ(q);}
-function renderQ(){const n=getQ().length;$('q').textContent='待傳 '+n;$('q').classList.toggle('on',n>0);}
+function renderQ(){const q=getQ();$('queue-status').textContent='待處理 '+q.length+(q.some(x=>x.needsReview)?'（可用原編號重試）':'');$('queue-status').classList.toggle('on',q.length>0);}
 let flushing=false;
 async function flush(){
-  if(flushing)return; flushing=true;
-  let q=getQ();
-  while(q.length){
-    const item=q[0];
-    try{
-      const r=await fetch(BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item.payload)});
-      if(!r.ok)throw 0;
-      const res=await r.json();
-      q.shift(); setQ(q);
-      if(res.ok){ addH({payload:item.payload,solid:res.solid,deltas:res.deltas,dispense:res.dispense,ts:Date.now(),undone:false});
-        toast(`✅ ${item.payload.id} ${res.name||''} 已入分：${res.dispense||'—'}`); }
-      else if(res.locked){ toast(`🔒 ${res.msg}`,true); }
-      else toast(res.msg||'入分失敗',true);
-    }catch{ break; }
-    q=getQ();
-  }
-  flushing=false;
+  if(flushing)return;flushing=true;
+  try{
+    let q=getQ();
+    while(q.length){
+      const item=q[0];if(item.needsReview)break;
+      // 先保存「可能已送出」，避免重新整理後不知情地重送。
+      item.needsReview=true;setQ(q);
+      try{
+        const r=await fetch(BASE+'/checkin',{method:'POST',headers:authHeaders(),body:JSON.stringify(item.payload)});
+        const res=await r.json();
+        if(res.ok){addH({payload:item.payload,receipt:res.receipt,solid:res.solid,dispense:res.dispense,ts:Date.now(),undone:false});q.shift();setQ(q);toast('已入分：'+(res.dispense||'—'));}
+        else {item.error=res.msg||'結果未確認';setQ(q);toast(item.error+'；請通知主持人核對。',true);break;}
+      }catch{toast('入分結果未確認，請通知主持人核對；請以原操作編號重試。',true);break;}
+      q=getQ();
+    }
+  }finally{flushing=false;}
 }
-setInterval(flush,5000); window.addEventListener('online',flush);
+async function retryQueue(){const q=getQ();if(q.some(x=>!x.payload.operationId)){toast('舊版操作須由主持人核對。',true);return;}q.forEach(x=>x.needsReview=false);setQ(q);await flush();for(const [i,e] of getH().entries())if(e.undoPending&&!e.undone)await doUndo(i);}
+function clearReviewedQueue(){if(!confirm('主持人已核對這部裝置的所有待處理入分與撤回？解除後不會補送或撤回分數。'))return;setQ([]);const h=getH();h.forEach(e=>{if(e.undoPending){e.reviewClosed=true;}});setH(h);toast('已解除待核對項目；如需調整，請由主持人處理。');}
 let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
-renderQ(); flush(); loadRoster();
+renderQ(); loadRoster();
 </script>
 </body>
 </html>
