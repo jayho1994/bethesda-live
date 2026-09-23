@@ -129,7 +129,7 @@ const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1
 const $=id=>document.getElementById(id);
 let STAFF_KEY=sessionStorage.getItem('bethesda_staff_A1')||'';
 const authHeaders=()=>({'Content-Type':'application/json',Authorization:'Bearer '+STAFF_KEY});
-async function staffState(){const r=await fetch(BASE+'/staff-state',{headers:authHeaders(),cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'站長登入失敗。');return d;}
+async function staffState(){const r=await fetch(BASE+'/staff-state',{headers:authHeaders(),cache:'no-store',signal:AbortSignal.timeout(7000)});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'站長登入失敗。');return d;}
 async function staffLogin(){STAFF_KEY=$('staff-key').value.trim();try{const d=await staffState();sessionStorage.setItem('bethesda_staff_A1',STAFF_KEY);$('staff-key').value='';if(d.station!=='all')stSel.value=d.station;stSel.disabled=d.station!=='all';rdSel.value=d.round;syncLabels();await loadRoster();}catch(e){toast(e.message,true);}}
 const esc=s=>String(s??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const stSel=$('station'),rdSel=$('round');
@@ -141,7 +141,7 @@ stSel.onchange=rdSel.onchange=syncLabels; syncLabels();
 let ROSTER=[];
 async function loadRoster(){
   try{
-    const r=await fetch(BASE+'/roster',{cache:'no-store',headers:authHeaders()});
+    const r=await fetch(BASE+'/roster',{cache:'no-store',headers:authHeaders(),signal:AbortSignal.timeout(7000)});
     const data=await r.json();if(!r.ok||!Array.isArray(data))throw new Error(data.msg||'名單讀取失敗');
     ROSTER=data.filter(x=>/^P[0-9]+$/i.test(x.id));
     renderRoster();
@@ -252,7 +252,7 @@ async function doUndo(i){
   undoBusy.add(i);
   try{
     if(!e.undoRequest){const state=await staffState();e.undoRequest={type:'undo',operationId:crypto.randomUUID(),id:e.payload.id,round:e.payload.round,station:e.payload.station,receipt:e.receipt,context:state.context};}e.undoPending=true;setH(h);
-    const r=await fetch(BASE+'/undo',{method:'POST',headers:authHeaders(),
+    const r=await fetch(BASE+'/undo',{method:'POST',headers:authHeaders(),signal:AbortSignal.timeout(9000),
       body:JSON.stringify(e.undoRequest)});
     const res=await r.json();
     if(res.ok){ e.undone=true; setH(h); toast(`↩️ ${e.payload.id} 已撤回，可以重新入分。`); openHist(); }
@@ -276,7 +276,7 @@ async function flush(){
       // 先保存「可能已送出」，避免重新整理後不知情地重送。
       item.needsReview=true;setQ(q);
       try{
-        const r=await fetch(BASE+'/checkin',{method:'POST',headers:authHeaders(),body:JSON.stringify(item.payload)});
+        const r=await fetch(BASE+'/checkin',{method:'POST',headers:authHeaders(),body:JSON.stringify(item.payload),signal:AbortSignal.timeout(9000)});
         const res=await r.json();
         if(res.ok){addH({payload:item.payload,receipt:res.receipt,solid:res.solid,dispense:res.dispense,ts:Date.now(),undone:false});q.shift();setQ(q);toast('已入分：'+(res.dispense||'—'));}
         else {item.error=res.msg||'結果未確認';setQ(q);toast(item.error+'；請通知主持人核對。',true);break;}
@@ -289,6 +289,11 @@ async function retryQueue(){const q=getQ();if(q.some(x=>!x.payload.operationId))
 function clearReviewedQueue(){if(!confirm('主持人已核對這部裝置的所有待處理入分與撤回？解除後不會補送或撤回分數。'))return;setQ([]);const h=getH();h.forEach(e=>{if(e.undoPending){e.reviewClosed=true;}});setH(h);toast('已解除待核對項目；如需調整，請由主持人處理。');}
 let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
 renderQ(); loadRoster();
+</script>
+<script>// Keep the displayed round aligned with MC; never change an open scoring form.
+let staffPolling=false;
+async function followMC(){if(!STAFF_KEY||staffPolling||document.hidden||$('modal').classList.contains('show'))return;staffPolling=true;try{const st=await staffState();if(rdSel.value!==st.round){rdSel.value=st.round;syncLabels();await loadRoster();toast('已跟隨主持人切換至 '+st.round);}}catch(e){toast('連線未更新；入分前會再次核對回合。',true);}finally{staffPolling=false;}}
+setInterval(followMC,4000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)followMC();});
 </script>
 <script src="quality.js"></script>
 </body>

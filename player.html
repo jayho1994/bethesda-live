@@ -484,7 +484,7 @@ let LASTPOLL = 0;
 async function poll() {
   if (busy || polling) return; polling = true; const generation = pollGeneration; LASTPOLL = Date.now();
   try {
-    const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store' });
+    const r = await fetch(BASE + '/me?id=' + encodeURIComponent(ID) + '&t=' + encodeURIComponent(TOKEN), { cache: 'no-store', signal:AbortSignal.timeout(7000) });
     const d = await r.json();
     if (generation !== pollGeneration) return;
     if (!d.ok) { $('app').innerHTML = '<div class="err">' + esc(d.msg || '連接不上') + '</div>'; return; }
@@ -573,7 +573,7 @@ if (!ID || !TOKEN) {
   $('app').innerHTML = '<div class="err">連結不完整。<br>請使用主持人發給你的完整連結。</div>';
 } else {
   if (restore()) render();
-  poll(); setInterval(() => { if (document.hidden) return; const idle = VIEW && !VIEW.pending && !LOCALPROMPT; if (idle && (Date.now() - LASTPOLL) < 15000) return; poll(); }, 8000);
+  poll(); setInterval(() => { if (!document.hidden) poll(); }, 3000);
 }
 </script>
 <script src="quality.js"></script>

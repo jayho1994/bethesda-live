@@ -258,7 +258,7 @@ body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-mot
   <div id="foot"></div><div id="status"></div>
   <iframe id="board" src="index.html"></iframe>
 </div></div>
-<script src="cinema.js?r6=20260923-2"></script>
+<script src="cinema.js?r7=20260923-1"></script>
 <script>
 // ── ✏️ Lambda URL ──
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
@@ -408,8 +408,8 @@ function startTimer(sec) {
 }
 async function poll() {
   if(polling)return;polling=true;
-  try { const r = await fetch(BASE + '/state', { cache: 'no-store' }); const st = await r.json();if(!r.ok||!st.slide)throw new Error(st.msg||'狀態讀取失敗'); CUR = st;
-    $('status').textContent = `同步 ${new Date().toLocaleTimeString('zh-HK')}`;
+  try { const r = await fetch(BASE + '/state', { cache: 'no-store', signal:AbortSignal.timeout(7000) }); const st = await r.json();if(!r.ok||!st.slide)throw new Error(st.msg||'狀態讀取失敗'); CUR = st;
+    $('status').textContent = `同步 ${new Date().toLocaleTimeString('zh-HK')} · Notion：${st.notionSync||'尚未到達結算點'}`;
     if (!PINNED) await show(st);
   } catch { $('status').textContent = '連線不上，重試中'; } finally { polling=false; }
 }
