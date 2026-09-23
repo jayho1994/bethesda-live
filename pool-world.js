@@ -3,7 +3,7 @@
 (()=>{'use strict';
 let requested='title',engine=null,quiet=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let pending=[];
-window.PoolWorld={go:key=>{requested=key;return engine?engine.go(key):new Promise(resolve=>pending.push(resolve));},quiet:value=>{quiet=value;engine?.quiet(value);}};
+window.PoolWorld={go:key=>{requested=key;return engine?engine.go(key):Promise.resolve(false);},quiet:value=>{quiet=value;engine?.quiet(value);}};
 const frame=document.getElementById('frame');const status=document.getElementById('status');
 const note=document.createElement('div');note.id='worldNotice';note.setAttribute('role','status');note.textContent='正在載入立體池區⋯';frame.append(note);
 addEventListener('error',e=>{if(/pool-world|three\.(module|core)/.test(e.filename||'')){note.dataset.detail=e.error?.stack||'';note.hidden=false;note.textContent='立體畫面發生錯誤：'+e.message+' 文稿仍可使用。';}});
@@ -84,6 +84,6 @@ addEventListener('error',e=>{if(/pool-world|three\.(module|core)/.test(e.filenam
  window.PoolWorld.go=engine.go;window.PoolWorld.quiet=engine.quiet;window.PoolWorld.destinations=poses;
  addEventListener('resize',wake);document.addEventListener('visibilitychange',()=>{last=null;if(document.hidden){cancelAnimationFrame(raf);raf=0;}else wake();});matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',e=>engine.quiet(e.matches));
  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();disposed=true;cancelAnimationFrame(raf);note.hidden=false;note.textContent='立體畫面已中斷。文稿仍可使用，請重新載入以恢復場景。';canvas.dataset.renderer='context-lost';});
- note.hidden=true;status.dataset.artMissing='';await engine.go(requested);pending.splice(0).forEach(resolve=>resolve(true));
+ note.hidden=true;status.dataset.artMissing='';await engine.go(requested);pending.splice(0).forEach(resolve=>resolve(true));document.dispatchEvent(new Event('pool-world-ready'));
 })().catch(e=>{note.hidden=false;note.textContent='立體場景未能載入：'+e.message+' 文稿仍可使用。';status.dataset.artMissing=note.textContent;window.PoolWorld.go=async()=>false;pending.splice(0).forEach(resolve=>resolve(false));console.error('R5 world load failed',e);});
 })();
