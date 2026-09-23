@@ -234,6 +234,14 @@ details[open] summary::before{content:"▾ "}
 .memory-image{aspect-ratio:1;background-image:url('art/memory-objects.png');background-size:300% 200%}
 .carried-memory figcaption{color:#f4eadb;background:#241c16;font-size:11px;line-height:1.5;padding:7px;text-align:left}
 .life-traces{margin-top:0}.life-portrait.mini{position:relative;flex-shrink:0}
+/* R4: compact montage; all copy stays in normal document flow. */
+.portrait-card{background:#ede5d6;overflow:visible}.avatarwrap{min-height:0;margin:0;display:grid!important;grid-template-columns:112px minmax(0,1fr);gap:8px;background:transparent;align-items:center}
+.avatarwrap>.life-portrait{position:relative;width:112px;height:146px;aspect-ratio:auto;background-size:390% 260%;mask-image:radial-gradient(ellipse 57% 65% at 50% 45%,#000 42%,transparent 88%);-webkit-mask-image:radial-gradient(ellipse 57% 65% at 50% 45%,#000 42%,transparent 88%);transform:rotate(var(--life-turn,0deg));box-shadow:none}
+.carried-memories{position:relative;inset:auto;display:flex;gap:6px;align-items:center;justify-content:flex-start;min-width:0;flex-wrap:wrap;padding:8px 0}
+.carried-memory,.carried-memory.memory-1,.carried-memory.memory-2{transform:none;width:calc(33.333% - 4px);max-width:76px;box-shadow:none;border:0;background:transparent;animation:none}.memory-image{mask-image:radial-gradient(ellipse,#000 45%,transparent 73%);-webkit-mask-image:radial-gradient(ellipse,#000 45%,transparent 73%)}
+.carried-memory figcaption{color:#403729;background:transparent;font-size:11px;line-height:1.5;padding:3px 0;overflow-wrap:anywhere;text-align:center}.memory-details{grid-column:1/-1}.life-traces{padding:8px 0 0;gap:8px}.trace-1,.trace-2{margin:0}.life-trace{box-shadow:none;background:#f8f3e8}.avcap{font-size:12px;padding:6px 0;color:#554735}.avcap small{display:none}.history-details{margin-top:10px}.portrait-card summary{font-size:13px;color:#5c4833;padding:8px 0;cursor:pointer}
+.stage .row{flex-wrap:wrap;gap:6px}.stage .tg{display:none}.stage .nt{display:none}.card,.result,.opt,.btn{overflow-wrap:anywhere;min-width:0}.wrap{width:100%;max-width:540px}.growth{overflow-x:auto;max-width:100%}
+@media(max-width:350px){.avatarwrap{grid-template-columns:90px minmax(0,1fr)}.avatarwrap>.life-portrait{width:90px;height:130px}.carried-memory figcaption{font-size:10px}}
 </style>
 </head>
 <body>
@@ -341,11 +349,11 @@ function growthHTML(v) {
   return '<div class="card portrait-card"><h2>我走到了這裏 <span class="hint">' + esc(v.round) + '</span></h2>' +
     '<div class="avatarwrap fabric-'+esc(v.appearance?.fabric||'linen')+'" style="--life-turn:'+Number(v.appearance?.turn||0)+'deg">' + avatarSVG(curTok, rn, {}) +
     '<div class="carried-memories">'+(v.appearance?.memories||[]).slice(-3).map((m,i)=>'<figure class="carried-memory memory-'+i+'"><div class="memory-image" style="background-position:'+(m.object%3*50)+'% '+(m.object<3?0:100)+'%"></div><figcaption>'+esc(m.label)+'</figcaption></figure>').join('')+'</div>'+
-    '<div class="life-traces">'+(v.choices||[]).filter(c=>c.act.startsWith('🎭')||c.act==='💰開標').slice(-3).map((c,i)=>'<div class="life-trace trace-'+i+'"><small>'+esc(c.round)+' · 已走過</small><p>'+esc(c.choiceText||c.note)+'</p></div>').join('')+'</div></div>' +
+    '<details class="memory-details"><summary>展開我的足跡</summary><div class="life-traces">'+(v.choices||[]).filter(c=>c.act.startsWith('🎭')||c.act==='💰開標').slice(-3).map((c,i)=>'<div class="life-trace trace-'+i+'"><small>'+esc(c.round)+' · 已走過</small><p>'+esc(c.choiceText||c.note)+'</p></div>').join('')+'</div></details></div>' +
     '<div class="avcap">' + esc(WEARLABEL[rn] || '') +
       '<br><small>你的選擇留在下方；這幅人生肖像不替你判定好壞。</small>' + '</div>' +
-    (steps ? '<div class="growth">' + steps + '</div>' : '') +
-    (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
+    (steps ? '<details class="history-details"><summary>人生剪影</summary><div class="growth">' + steps + '</div></details>' : '') +
+    (tl ? '<details class="history-details"><summary>完整選擇紀錄</summary><div class="tl">' + tl + '</div></details>' : '') + '</div>';
 }
 
 // ═══ 各區塊 ═══
@@ -358,7 +366,7 @@ function stageHTML(v) {
     '<span class="nm">' + esc(s.stage) + '</span>' +
     '<span class="ag">' + esc(s.age) + '</span>' +
     '<span class="tg">· ' + esc(s.tag) + '</span></div>' +
-    (s.note ? '<div class="nt">' + esc(s.note) + '</div>' : '') +
+    '' +
     '<div class="rail2"></div></div>';
 }
 
