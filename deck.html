@@ -242,9 +242,11 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 #frame .wts{width:100%;max-width:85vh;gap:1.5vh;justify-content:center}#frame .wt{flex:1 1 0;min-width:0;max-width:15vh}
 body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-motion #content *::after{animation:none!important;transition:none!important}body.quiet-motion #content .lines>*,body.quiet-motion #content .st,body.quiet-motion #content .opt,body.quiet-motion #content .pd,body.quiet-motion #content .big,body.quiet-motion #content .rank,body.quiet-motion #content .row,body.quiet-motion #content .qrbox,body.quiet-motion #content .goal{opacity:1!important}
 @media(prefers-reduced-motion:reduce){#content .lines>*,#content .st,#content .opt,#content .pd,#content .big,#content .rank,#content .row,#content .qrbox,#content .goal{opacity:1!important}}
+#worldNotice{position:absolute;left:18px;top:72px;z-index:1900;max-width:420px;background:#192620e8;color:#fff2d4;border:1px solid #bd9b5e;padding:12px;font:15px/1.7 sans-serif}#worldNotice[hidden]{display:none}#poolWorld{object-fit:contain}
+#frame.scene-only #content,#frame.scene-only #frameShade{visibility:hidden}#frame.scene-only:after{opacity:0}
 </style>
 </head>
-<body><button id="motionMode" aria-pressed="false">減少動態</button><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="previewLive" hidden>返回現場</button><button id="backupOffline" hidden>下載離線備份</button></nav><aside id="reviewMessage" hidden></aside>
+<body><button id="motionMode" aria-pressed="false">減少動態</button><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="sceneView" aria-pressed="false" hidden>檢視場景</button><button id="previewLive" hidden>返回現場</button><button id="backupOffline" hidden>下載離線備份</button></nav><aside id="reviewMessage" hidden></aside>
 <div id="stage"><div id="frame">
   <div class="art" id="artA"></div><div class="art" id="artB"></div>
   <div class="bg" id="bgA"></div><div class="bg" id="bgB"></div>
@@ -260,7 +262,7 @@ body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-mot
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 const SLIDES_DIR = 'slides/';        // Canva 匯出 PNG 放呢度：slides/S03_R1_sit.png；揭示：slides/S25_R6_reveal_p3.png
 // ── 油畫底圖（Gamma 生成，油畫風、冇真人）。本地 art/<key>.jpg 優先，冇就用 CDN ──
-function artKeyFor(s, st) { return s.kind==='title'||s.kind==='reveal'?'title':s.round||'R6'; }
+function artKeyFor(s, st) { return s.kind==='title'?'title':s.round||'R6'; }
 // ─────────────
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
@@ -418,11 +420,12 @@ $('previewLive').onclick=()=>{PINNED=false;$('pin').classList.remove('on');if(CU
 document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;if(e.key==='Escape'){$('previewLive').click();$('reviewMessage').hidden=true;}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){if(PREVIEW.length)previewMove(previewIndex+(e.key==='ArrowRight'?1:-1));else $('openPreview').click();}});
 async function loadPreview(){const token=new URLSearchParams(location.hash.slice(1)).get('preview');if(!token)return;previewToken=token;history.replaceState(null,'',location.pathname+location.search);PINNED=true;
  try{const r=await fetch(BASE+'/preview',{headers:{Authorization:'Bearer '+token},cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok||!d.pages?.length)throw Error(d.msg||'預覽未能載入');PREVIEW=d.pages;
- for(const id of ['previewPrev','previewSelect','previewNext','previewLive','backupOffline'])$(id).hidden=false;
+ for(const id of ['previewPrev','previewSelect','previewNext','previewLive','backupOffline','sceneView'])$(id).hidden=false;
  $('previewSelect').innerHTML=PREVIEW.map((p,i)=>`<option value="${i}">${i+1}/${PREVIEW.length} · ${esc(p.slide.round||'開場')} ${esc(p.slide.title)}${p.reveal?' · '+p.reveal:''}</option>`).join('');previewMove(0);
  }catch(e){PINNED=false;previewMessage(e.message);}}
 $('backupOffline').onclick=async()=>{try{const r=await fetch(BASE+'/offline-backup',{headers:{Authorization:'Bearer '+previewToken},cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.msg||'備份未能取得');const u=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='畢士大離線備份-'+new Date().toISOString().replaceAll(':','-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);previewMessage('已下載目前時間的備份。切換離線前，請停止所有線上操作；離線版不會自動回灌雲端。');}catch(e){previewMessage(e.message);}};
 $('motionMode').onclick=()=>{const b=$('motionMode'),q=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(q));b.textContent=q?'恢復動態':'減少動態';document.body.classList.toggle('quiet-motion',q);window.PoolWorld?.quiet(q);};
+$('sceneView').onclick=()=>{const on=$('sceneView').getAttribute('aria-pressed')!=='true';$('sceneView').setAttribute('aria-pressed',String(on));$('sceneView').textContent=on?'恢復文稿':'檢視場景';$('frame').classList.toggle('scene-only',on);window.dispatchEvent(new Event('resize'));};
 loadPreview();
 poll(); setInterval(poll, 2000);   // v6：狀態小、快取短，2 秒一輪
 </script>

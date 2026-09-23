@@ -1,46 +1,89 @@
-/* R4 camera: a shared pool world, chapter destinations, refracted water.
-   The paintings are 2D source material; perspective geometry and water render in WebGL.
-   This is layered 2.5D, not a surveyed 3D reconstruction of ancient Jerusalem. */
+/* R5: one metre-scale GLB world, perspective camera, depth-tested geometry.
+   No chapter photographs or image crossfades. All dependencies ship locally. */
 (()=>{'use strict';
-const canvas=document.createElement('canvas');canvas.id='poolWorld';canvas.setAttribute('aria-hidden','true');document.getElementById('frame').prepend(canvas);
-const reduced=matchMedia('(prefers-reduced-motion: reduce)');let quiet=reduced.matches;let gl=canvas.getContext('webgl',{alpha:false,antialias:false,powerPreference:'low-power'});
-const destinations=[[.5,.5,1],[.17,.76,2.8],[.12,.24,2.8],[.47,.14,2.8],[.86,.28,2.8],[.87,.74,2.8],[.56,.85,2.8]];
-const paths=['world','R1','R2','R3','R4','R5','R6'].map(k=>'art/pool-'+k+'.png');
-let active=0,previous=0,started=0,ready=false,lastFrame=0,raf=0,missing=new Set(),loaded=new Set(),generation=0;
-const frame=document.getElementById('frame');
-function notice(){canvas.dataset.missing=[...missing].join(',');document.getElementById('status').dataset.artMissing=missing.size?'部分場景未載入；保留全文，使用可用的靜態背景。':'';}
-function fallback(index){canvas.hidden=true;frame.style.backgroundImage=`linear-gradient(90deg,#171a1820,#171a18b0),url('${paths[index]}'),url('${paths[0]}')`;frame.style.backgroundSize='cover';canvas.dataset.renderer='still';}
-if(!gl){window.PoolWorld={go:async key=>{fallback(key==='title'?0:Number(key.slice(1))||0);return true;},quiet:()=>{}};return;}
-const vert=`attribute vec2 a;uniform vec3 camera;uniform float tilt;varying vec2 uv;void main(){uv=a;vec2 p=(a-camera.xy)*2.*camera.z;float depth=(1.-a.y)*.13;float w=1.+depth*tilt;gl_Position=vec4(p.x,-p.y+depth*tilt*.18,depth,w);}`;
-const frag=`precision mediump float;varying vec2 uv;uniform sampler2D world;uniform sampler2D scene;uniform float time;uniform float blend;uniform float weather;uniform float motion;uniform float opacity;
-vec3 water(sampler2D img,vec2 p,float t){vec3 c=texture2D(img,p).rgb;float teal=smoothstep(.01,.075,min(c.g-c.r,c.b-c.r));float wave=sin(p.x*180.+p.y*72.+t*.65)*sin(p.y*125.-t*.8);vec2 shift=vec2(wave,sin(p.x*104.-t*.6))*.0008*teal*motion;vec3 wet=texture2D(img,clamp(p+shift,.001,.999)).rgb;return wet+teal*wave*.026*motion;}
-void main(){vec2 p=clamp(uv,.001,.999);vec3 c=water(world,p,time);float cloud=(sin(p.x*3.+time*.013)+sin(p.y*5.-time*.012))*.015*motion;
-vec3 grade=mix(vec3(1.03,1.,.96),vec3(.73,.84,.93),weather);c=c*grade+cloud;
-gl_FragColor=vec4(c,opacity);}`;
-function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
-let program,cam,tim,wea,mot,tilt,tex,sceneLayer,opacity;const chapterTextures=new Map();try{
- program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('link');gl.useProgram(program);
- const vertices=[];for(let y=0;y<24;y++)for(let x=0;x<40;x++){const l=x/40,r=(x+1)/40,t=y/24,b=(y+1)/24;vertices.push(l,t,r,t,l,b,l,b,r,t,r,b);}const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);const pos=gl.getAttribLocation(program,'a');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
- cam=gl.getUniformLocation(program,'camera');tim=gl.getUniformLocation(program,'time');wea=gl.getUniformLocation(program,'weather');mot=gl.getUniformLocation(program,'motion');tilt=gl.getUniformLocation(program,'tilt');
- opacity=gl.getUniformLocation(program,'opacity');gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,1,1,0,gl.RGB,gl.UNSIGNED_BYTE,new Uint8Array([25,30,27]));
- sceneLayer=document.createElement('div');sceneLayer.id='chapterScene';sceneLayer.setAttribute('aria-hidden','true');canvas.after(sceneLayer);
-}catch(e){fallback(0);window.PoolWorld={go:async k=>{fallback(k==='title'?0:Number(k.slice(1))||0);return true;},quiet:()=>{}};return;}
-const images=new Map();function load(index){if(images.has(index))return images.get(index);const p=new Promise(resolve=>{const img=new Image();let done=false;const end=value=>{if(done)return;done=true;clearTimeout(timer);if(value){loaded.add(index);missing.delete(index);}else{images.delete(index);missing.add(index);}notice();resolve(value);};const timer=setTimeout(()=>end(null),10000);img.onload=()=>end(img);img.onerror=()=>end(null);img.src=paths[index];});images.set(index,p);return p;}
-function size(){const r=canvas.getBoundingClientRect(),w=Math.min(1920,Math.round(r.width*devicePixelRatio)),h=Math.round(w*9/16);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}}
-const mix=(a,b,t)=>a+(b-a)*t,smooth=t=>t*t*(3-2*t);
-function render(now){raf=0;if(document.hidden)return;lastFrame=now;size();let p=quiet?1:Math.min(1,(now-started)/4200),from=destinations[previous],to=destinations[active],camera;
- if(p<.35){const t=smooth(p/.35);camera=[mix(from[0],.5,t),mix(from[1],.5,t),mix(from[2],1.05,t)];}else{const t=smooth((p-.35)/.65);camera=[mix(.5,to[0],t),mix(.5,to[1],t),mix(1.05,to[2],t)];}
- // Return to the whole pool for the opening and final reveal.
- if(active===0&&p===1)camera=to;
- gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1f(opacity,1);gl.uniform3fv(cam,camera);gl.uniform1f(tim,quiet?0:now/1000);gl.uniform1f(wea,[0,.05,.2,.08,.24,.8,.3][active]);gl.uniform1f(mot,quiet?0:1);gl.uniform1f(tilt,quiet?0:(1-p)*.25);gl.drawArrays(gl.TRIANGLES,0,40*24*6);
- const arriving=active&&loaded.has(active)?smooth(Math.max(0,Math.min(1,(p-.64)/.36))):0;
- sceneLayer.style.opacity='0';if(arriving>0&&chapterTextures.has(active)){gl.bindTexture(gl.TEXTURE_2D,chapterTextures.get(active));gl.uniform1f(opacity,arriving);gl.uniform3fv(cam,[.5,.5,1+(1-arriving)*.2]);gl.uniform1f(tilt,0);gl.drawArrays(gl.TRIANGLES,0,40*24*6);}sceneLayer.style.transform=`perspective(1400px) translate3d(${(1-arriving)*24}px,${(1-arriving)*12}px,0) scale(${1+(1-arriving)*.2})`;
- canvas.dataset.camera=JSON.stringify(camera.map(x=>Number(x.toFixed(3))));canvas.dataset.chapter=String(active);canvas.dataset.rendered=String(Number(canvas.dataset.rendered||0)+1);canvas.dataset.travel=p<1?'moving':'settled';
+let requested='title',engine=null,quiet=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let pending=[];
+window.PoolWorld={go:key=>{requested=key;return engine?engine.go(key):new Promise(resolve=>pending.push(resolve));},quiet:value=>{quiet=value;engine?.quiet(value);}};
+const frame=document.getElementById('frame');const status=document.getElementById('status');
+const note=document.createElement('div');note.id='worldNotice';note.setAttribute('role','status');note.textContent='正在載入立體池區⋯';frame.append(note);
+addEventListener('error',e=>{if(/pool-world|three\.(module|core)/.test(e.filename||'')){note.dataset.detail=e.error?.stack||'';note.hidden=false;note.textContent='立體畫面發生錯誤：'+e.message+' 文稿仍可使用。';}});
+(async()=>{
+ const [T,{GLTFLoader},{mergeGeometries},{Reflector}]=await Promise.all([import('./vendor/three.module.js'),import('./vendor/GLTFLoader.js'),import('./vendor/BufferGeometryUtils.js'),import('./vendor/Reflector.js')]);
+ const canvas=document.createElement('canvas');canvas.id='poolWorld';canvas.setAttribute('aria-hidden','true');frame.prepend(canvas);
+ const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+ renderer.setPixelRatio(1);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+ renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
+ const scene=new T.Scene(),camera=new T.PerspectiveCamera(48,16/9,.12,650);
+ scene.fog=new T.FogExp2(0x8bafa9,.0029);
+ const hemi=new T.HemisphereLight(0xb4cede,0x504a35,1.25);scene.add(hemi);
+ const sun=new T.DirectionalLight(0xffe0ac,3.3);sun.position.set(-35,65,25);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-65,right:65,top:65,bottom:-65,near:1,far:180});sun.shadow.bias=-.0004;sun.shadow.normalBias=.12;scene.add(sun,sun.target);
+ const fill=new T.DirectionalLight(0xa4c6d7,.55);fill.position.set(45,20,-50);scene.add(fill);
+ const globals={t:{value:0},storm:{value:0},flash:{value:0}};
+ const sky=new T.Mesh(new T.SphereGeometry(460,24,12),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,uniforms:globals,vertexShader:`varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`precision highp float;varying vec3 v;uniform float t,storm,flash;
+ float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+1.),f.x),f.y);}float fb(vec2 p){return .5*n(p)+.25*n(p*2.1)+.125*n(p*4.3)+.0625*n(p*8.2);}
+ void main(){vec3 r=normalize(v);float h=max(0.,r.y);vec3 c=mix(vec3(.79,.83,.72),vec3(.20,.46,.66),pow(h,.45));vec2 p=r.xz/(.28+abs(r.y))*.95+vec2(t*.016,t*.004);float cloud=smoothstep(.38,.64,fb(p*2.8));cloud*=smoothstep(.0,.2,h);c=mix(c,vec3(.92,.91,.84),cloud*.88);c=mix(c,vec3(.15,.21,.26)+cloud*.12,storm*.86);gl_FragColor=vec4(c+flash*.22,1.);}`}));scene.add(sky);
+ // The ground-facing moving cloud shadow and wind apply to actual world coordinates.
+ function atmosphere(mat,isLeaf){
+ const stone=/limestone|Weathered|Paving|Concrete|Ivory|Jade/.test(mat.name),wood=/timber/.test(mat.name),fabric=/Fabric/.test(mat.name),roof=/Terracotta/.test(mat.name);
+ mat.onBeforeCompile=s=>{
+ s.uniforms.worldTime=globals.t;s.uniforms.stormLevel=globals.storm;
+ s.vertexShader=s.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 worldP;uniform float worldTime;');
+ s.vertexShader=s.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n'+(isLeaf?'transformed.x+=sin(worldTime*1.1+position.y*.8+position.x*.5)*.16;transformed.z+=cos(worldTime*.8+position.z)*.12;':'')+'worldP=(modelMatrix*vec4(transformed,1.)).xyz;');
+ s.fragmentShader=s.fragmentShader.replace('#include <common>',`#include <common>
+ varying vec3 worldP;uniform float worldTime;uniform float stormLevel;
+ float patHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+ float patNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(patHash(i),patHash(i+vec3(1,0,0)),f.x),mix(patHash(i+vec3(0,1,0)),patHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(patHash(i+vec3(0,0,1)),patHash(i+vec3(1,0,1)),f.x),mix(patHash(i+vec3(0,1,1)),patHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+ `);
+ s.fragmentShader=s.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+ float cloudShade=sin(worldP.x*.048+worldTime*.085)+cos(worldP.z*.056-worldTime*.066);
+ float coarse=patNoise(worldP*2.8),fine=patNoise(worldP*36.);
+ diffuseColor.rgb*=.84+.06*cloudShade+.14*coarse+.08*fine;
+ ${stone?`vec3 face=abs(normalize(cross(dFdx(worldP),dFdy(worldP))));vec2 tile=face.y>.55?worldP.xz:vec2(face.x>.5?worldP.z:worldP.x,worldP.y);float row=floor(tile.y/.65);vec2 uv=fract(vec2(tile.x/1.3+mod(row,2.)*.5,tile.y/.65));float joint=1.-smoothstep(.008,.027,min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y)));diffuseColor.rgb*=1.-joint*.17;float damp=(1.-smoothstep(-.1,1.6,worldP.y))*(.1+.15*coarse);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.48,.61,.44),damp);`:''}
+ ${wood?'float grain=sin(worldP.x*36.+patNoise(worldP*2.)*9.);diffuseColor.rgb*=.84+.10*grain;':''}
+ ${fabric?'float weave=sin(worldP.x*110.)*sin(worldP.z*110.);diffuseColor.rgb*=.95+.05*weave;':''}
+ ${roof?'diffuseColor.rgb*=.83+.22*patNoise(worldP*5.);':''}
+ diffuseColor.rgb*=mix(1.,.74,stormLevel);`);
+ };
+ mat.customProgramCacheKey=()=>['r5-atmosphere',isLeaf,stone,wood,fabric,roof].join('-');
+ }
+ const loader=new GLTFLoader();let loaded;
+ const abort=new Promise((_,reject)=>setTimeout(()=>reject(Error('立體模型載入逾時。請檢查連線後重新載入。')),30000));
+ loaded=await Promise.race([loader.loadAsync('art/bethesda-world.glb'),abort]);
+ loaded.scene.traverse(o=>{if(o.name==='Stone_island_foundation')o.position.y=-3.5;});loaded.scene.updateMatrixWorld(true);const buckets=new Map();let meshCount=0;
+ loaded.scene.traverse(o=>{if(!o.isMesh||o.name.startsWith('Water_surface'))return;meshCount++;const material=o.material;if(Array.isArray(material))throw Error('模型材質格式不符');const key=material.uuid;const geo=o.geometry.clone();for(const attr of Object.keys(geo.attributes))if(!['position','normal'].includes(attr))geo.deleteAttribute(attr);if(!geo.attributes.normal)geo.computeVertexNormals();geo.applyMatrix4(o.matrixWorld);if(geo.index){const g=geo.toNonIndexed();geo.dispose();if(!buckets.has(key))buckets.set(key,{material,geometries:[]});buckets.get(key).geometries.push(g);}else{if(!buckets.has(key))buckets.set(key,{material,geometries:[]});buckets.get(key).geometries.push(geo);}});
+ for(const {material,geometries} of buckets.values()){const merged=mergeGeometries(geometries,false);if(!merged)throw Error('模型合併失敗');for(const g of geometries)g.dispose();const m=material.clone();if(m.transparent)m.depthWrite=false;atmosphere(m,/Leaves/.test(m.name));const mesh=new T.Mesh(merged,m);mesh.name='Static '+m.name;mesh.castShadow=!m.transparent;mesh.receiveShadow=!m.transparent;scene.add(mesh);}
+ // True displaced surfaces, continuous ripple normals, moving sunlight and rain impacts.
+ const reflection=new Reflector(new T.PlaneGeometry(55,45),{textureWidth:768,textureHeight:432,multisample:0,clipBias:.003});reflection.rotation.x=-Math.PI/2;reflection.position.y=-.23;reflection.updateMatrixWorld(true);const waters=[];
+ const waterUniforms={...globals,eye:{value:camera.position},warmth:{value:0},mirror:{value:reflection.getRenderTarget().texture},mirrorMatrix:reflection.material.uniforms.textureMatrix};
+ const waterMaterial=new T.ShaderMaterial({uniforms:waterUniforms,side:T.DoubleSide,vertexShader:`uniform float t,storm;varying vec3 wp;varying vec2 uvw;
+ void main(){vec3 p=position;float amp=mix(.09,.34,storm);p.z+=sin(p.x*.65+t*1.35)*amp+sin(p.y*.83-t*1.6)*amp*.55;uvw=uv;vec4 world=modelMatrix*vec4(p,1.);wp=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}`,fragmentShader:`precision highp float;uniform float t,storm,flash,warmth;uniform vec3 eye;uniform sampler2D mirror;uniform mat4 mirrorMatrix;varying vec3 wp;varying vec2 uvw;
+ float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}void main(){float a=mix(.09,.34,storm);vec3 normal=normalize(vec3(-.65*cos(wp.x*.65+t*1.35)*a,1.,-.83*cos(wp.z*.83-t*1.6)*a));normal.xz+=vec2(sin(wp.z*5.+t*2.),cos(wp.x*4.-t*1.7))*.055;normal=normalize(normal);vec3 view=normalize(eye-wp);float fres=pow(1.-max(0.,dot(view,normal)),3.);float spark=pow(max(0.,dot(reflect(normalize(vec3(.45,-.8,-.35)),normal),view)),90.);float caustic=pow(abs(sin(wp.x*3.+sin(wp.z*2.+t)*1.5+t)*sin(wp.z*2.6-t*.8)),16.);vec2 cell=floor(wp.xz*4.5);float age=fract(t*.8+hash(cell));float ring=1.-smoothstep(.025,.07,abs(length(fract(wp.xz*4.5)-.5)-age*.45));ring*=1.-age;vec3 deep=mix(vec3(.025,.21,.20),vec3(.045,.10,.15),storm);vec3 c=mix(deep,mix(vec3(.52,.69,.70),vec3(.25,.32,.38),storm),fres*.82);c+=caustic*.065+spark*vec3(1.,.8,.42)*(1.-storm*.8)+ring*storm*.06+flash*.16;c=mix(c,c*vec3(1.15,.90,.75),warmth*.35);vec4 mp=mirrorMatrix*vec4(wp.x,-wp.z,0.,1.);vec2 muv=mp.xy/mp.w+normal.xz*.025;vec3 reflectionColour=texture2D(mirror,clamp(muv,.001,.999)).rgb;c=mix(c,reflectionColour,mix(.28,.64,fres)*(1.-storm*.25));gl_FragColor=vec4(c,1.);}`} );
+ for(const x of [-14,14]){const water=new T.Mesh(new T.PlaneGeometry(23.7,43.7,80,120),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(x,-.23,0);water.name='Living water '+x;scene.add(water);waters.push(water);}
+ // GPU rain: line segments traverse real world depth, so porches occlude them.
+ const rainCount=4400,rainGeo=new T.BufferGeometry(),rainPosition=[],seeds=[];let rng=73019;const rand=()=>{rng=(rng*1664525+1013904223)>>>0;return rng/4294967296;};
+ for(let i=0;i<rainCount;i++){const x=(rand()-.5)*110,z=(rand()-.5)*100,seed=rand();rainPosition.push(x,0,z,x,.85,z);seeds.push(seed,seed);}
+ rainGeo.setAttribute('position',new T.Float32BufferAttribute(rainPosition,3));rainGeo.setAttribute('seed',new T.Float32BufferAttribute(seeds,1));
+ const rain=new T.LineSegments(rainGeo,new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:globals,vertexShader:`attribute float seed;uniform float t;varying float fade;void main(){vec3 p=position;p.y+=mod(seed*35.-t*17.,35.);p.x+=p.y*.18;fade=1.-p.y/45.;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,fragmentShader:`uniform float storm;varying float fade;void main(){gl_FragColor=vec4(.72,.84,.90,storm*.48*fade);}`}));rain.frustumCulled=false;scene.add(rain);
+ const bolt=new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(6,43,-30),new T.Vector3(2,35,-31),new T.Vector3(5,29,-30),new T.Vector3(-1,23,-31),new T.Vector3(2,18,-30),new T.Vector3(-3,9,-30)]),new T.LineBasicMaterial({color:0xd9ecff,transparent:true,opacity:0,depthWrite:false}));scene.add(bolt);
+ const poses=[{p:[45,52,60],l:[-3,1,-5]},{p:[-34,5,26],l:[-42,3,19]},{p:[-32,6,-10],l:[-42,3,-18]},{p:[32,5.5,-10],l:[42,3,-19]},{p:[34,5.2,25],l:[43,3,18]},{p:[13,3.2,22.9],l:[0,3,-5]},{p:[-9,4.8,40],l:[1,1.8,28]}];
+ let framing=.08;let active=-1,travel=null,time=0,last=null,raf=0,storm=0,stormTarget=0;let look=new T.Vector3(0,1,0),draws=0,disposed=false;
+ camera.position.fromArray(poses[0].p);camera.lookAt(look);
+ const ease=x=>x*x*x*(x*(x*6-15)+10);
+ function resize(){const rect=frame.getBoundingClientRect();const w=Math.max(1,Math.min(1920,Math.round(rect.width*Math.min(devicePixelRatio,1.5))));const h=Math.round(w*9/16);if(canvas.width!==w||canvas.height!==h)renderer.setSize(w,h,false);camera.aspect=16/9;camera.setViewOffset(w,h,w*framing,0,w,h);camera.updateProjectionMatrix();}
+ function render(now){raf=0;if(disposed||document.hidden)return;const dt=last===null?0:Math.min(.05,(now-last)/1000);last=now;if(!quiet)time+=dt;
+ if(travel){const p=quiet?1:Math.max(0,Math.min(1,(now-travel.start)/travel.duration));camera.position.copy(travel.path.getPoint(ease(p)));look.lerpVectors(travel.look,new T.Vector3(...poses[active].l),ease(p));if(p>=1)travel=null;}
+ camera.lookAt(look);storm=quiet?stormTarget:T.MathUtils.damp(storm,stormTarget,.8,dt);globals.t.value=time;globals.storm.value=storm;
+ const pulse=time%9.4;const lightning=storm>.6&&pulse>7.6&&pulse<7.95?Math.sin((pulse-7.6)/.35*Math.PI):0;globals.flash.value=quiet?0:lightning;bolt.material.opacity=quiet?0:lightning*.9;
+ sun.intensity=(3.3-storm*2.5)*(1+Math.sin(time*.12)*.075)+lightning*.8;sun.color.set(active===4||active===6?0xffc58a:0xffe0b4);hemi.intensity=1.25-storm*.35;waterUniforms.warmth.value=active===4||active===6?1:0;
+ scene.fog.density=.0029+storm*.009;scene.fog.color.set(storm>.5?0x617779:0x8bafa9);rain.visible=storm>.01;
+ const desiredFraming=frame.classList.contains('scene-only')?0:active===0?.08:.22;framing=quiet?desiredFraming:T.MathUtils.damp(framing,desiredFraming,2.4,dt);resize();if(draws%2===0||quiet||travel){camera.updateMatrixWorld(true);for(const w of waters)w.visible=false;reflection.onBeforeRender(renderer,scene,camera);for(const w of waters)w.visible=true;}renderer.render(scene,camera);draws++;Object.assign(canvas.dataset,{renderer:'three-webgl',chapter:String(active),camera:JSON.stringify(camera.position.toArray().map(x=>+x.toFixed(3))),look:JSON.stringify(look.toArray().map(x=>+x.toFixed(3))),travel:travel?'moving':'settled',rendered:String(draws),worldTime:time.toFixed(3),storm:storm.toFixed(3),triangles:String(renderer.info.render.triangles),calls:String(renderer.info.render.calls),worldMeshes:String(meshCount)});
  if(!quiet)raf=requestAnimationFrame(render);
-}
-function wake(){if(!raf&&!document.hidden)raf=requestAnimationFrame(render);}
-window.PoolWorld={async go(key){const next=key==='title'?0:Math.max(0,Math.min(6,Number(String(key).slice(1))||0));if(ready&&next===active&&loaded.has(next))return true;const g=++generation;const world=await load(0);if(!world){fallback(next);return false;}if(g!==generation)return false;canvas.hidden=false;frame.style.backgroundImage='';if(!ready){gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,world);ready=true;canvas.dataset.renderer='webgl';}
- const img=next?await load(next):null;if(g!==generation)return false;if(img&&!chapterTextures.has(next)){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img);chapterTextures.set(next,t);}previous=active;active=next;started=performance.now();sceneLayer.style.backgroundImage=img?`url('${paths[next]}')`:'none';sceneLayer.style.opacity='0';wake();return true;},quiet(value){quiet=value;cancelAnimationFrame(raf);raf=0;wake();},destinations};
-reduced.addEventListener('change',e=>window.PoolWorld.quiet(e.matches));document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else wake();});addEventListener('resize',wake);
-canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();cancelAnimationFrame(raf);raf=0;fallback(active);document.getElementById('status').dataset.artMissing='動態畫面已暫停；使用靜態場景。';});
+ }
+ function wake(){if(!raf&&!document.hidden&&!disposed)raf=requestAnimationFrame(render);}
+ engine={async go(key){const next=key==='title'?0:Math.max(0,Math.min(6,Number(String(key).replace(/^R/i,''))||0));if(next===active)return true;const first=active<0;active=next;stormTarget=next===5?1:0;const dest=new T.Vector3(...poses[next].p),from=camera.position.clone();const a=from.clone(),b=dest.clone();a.y=Math.max(15,from.y*.8);b.y=Math.max(15,dest.y+8);if(next===0)b.set(35,45,60);const path=new T.CatmullRomCurve3([from,a,b,dest],false,'centripetal');travel={path,start:performance.now(),duration:next===0?6500:7600,look:look.clone()};if(quiet||(first&&next===0)){camera.position.copy(dest);look.fromArray(poses[next].l);travel=null;}wake();return true;},quiet(value){quiet=value;last=null;cancelAnimationFrame(raf);raf=0;wake();}};
+ window.PoolWorld.go=engine.go;window.PoolWorld.quiet=engine.quiet;window.PoolWorld.destinations=poses;
+ addEventListener('resize',wake);document.addEventListener('visibilitychange',()=>{last=null;if(document.hidden){cancelAnimationFrame(raf);raf=0;}else wake();});matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',e=>engine.quiet(e.matches));
+ canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();disposed=true;cancelAnimationFrame(raf);note.hidden=false;note.textContent='立體畫面已中斷。文稿仍可使用，請重新載入以恢復場景。';canvas.dataset.renderer='context-lost';});
+ note.hidden=true;status.dataset.artMissing='';await engine.go(requested);pending.splice(0).forEach(resolve=>resolve(true));
+})().catch(e=>{note.hidden=false;note.textContent='立體場景未能載入：'+e.message+' 文稿仍可使用。';status.dataset.artMissing=note.textContent;window.PoolWorld.go=async()=>false;pending.splice(0).forEach(resolve=>resolve(false));console.error('R5 world load failed',e);});
 })();
