@@ -233,9 +233,18 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 #frame.dense-layout .body{font-size:2.6vh!important;line-height:1.65}
 #frame.dense-layout .opts{margin-top:2vh;gap:1vh}
 #frame.dense-layout .opt{font-size:2.4vh;padding:1.1vh 1.7vh}
+/* R4: one persistent pool world; copy never participates in camera transforms. */
+#poolWorld,#chapterScene{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}#chapterScene{background-size:cover;background-position:center;will-change:opacity,transform;transform-origin:32% 55%}.art,.depth-portal,.scene-memory{display:none!important}#frame::after{border:0;box-shadow:inset 0 0 6vh #10171444}
+#frame.dark-art .slide::before{background:linear-gradient(90deg,#171b18ed,#171b18fa);left:48%}#frame.dark-art.dense-layout .slide::before{left:36%}#frame.dark-art .slide .body{color:#fff6e5}#frame.dark-art .slide .hint{background:#222a24;color:#f1d6ad}#frame.ranking-layout .slide{background:#171b18f5}#frame .slide{isolation:isolate}#frame.with-art .slide{padding-left:49%}#frame.with-art.dense-layout .slide{padding-left:38%}
+#motionMode{position:fixed;bottom:8px;left:8px;z-index:2000;background:#1d2925;color:#eee4cf;border:1px solid #9eae9c;padding:7px;font:12px system-ui}
+@media(prefers-reduced-motion:reduce){#chapterScene{will-change:auto}}
+#frame.opening-layout .slide{justify-content:flex-end;align-items:flex-end;text-align:right;padding:0 6% 10%;gap:.2vh}#frame.opening-layout .slide::before{left:0;top:40%;background:linear-gradient(0deg,#101914ef,transparent)}#frame.opening-layout .slide h1{font-size:6vh!important}#frame.opening-layout .rule{margin:1.2vh 0;width:20vh}#frame.opening-layout .slide .sub{color:#fff1d4;text-shadow:0 2px 8px #000}
+#frame .wts{width:100%;max-width:85vh;gap:1.5vh;justify-content:center}#frame .wt{flex:1 1 0;min-width:0;max-width:15vh}
+body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-motion #content *::after{animation:none!important;transition:none!important}body.quiet-motion #content .lines>*,body.quiet-motion #content .st,body.quiet-motion #content .opt,body.quiet-motion #content .pd,body.quiet-motion #content .big,body.quiet-motion #content .rank,body.quiet-motion #content .row,body.quiet-motion #content .qrbox,body.quiet-motion #content .goal{opacity:1!important}
+@media(prefers-reduced-motion:reduce){#content .lines>*,#content .st,#content .opt,#content .pd,#content .big,#content .rank,#content .row,#content .qrbox,#content .goal{opacity:1!important}}
 </style>
 </head>
-<body><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="previewLive" hidden>返回現場</button></nav><aside id="reviewMessage" hidden></aside>
+<body><button id="motionMode" aria-pressed="false">減少動態</button><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="previewLive" hidden>返回現場</button><button id="backupOffline" hidden>下載離線備份</button></nav><aside id="reviewMessage" hidden></aside>
 <div id="stage"><div id="frame">
   <div class="art" id="artA"></div><div class="art" id="artB"></div>
   <div class="bg" id="bgA"></div><div class="bg" id="bgB"></div>
@@ -245,12 +254,13 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
   <div id="foot"></div><div id="status"></div>
   <iframe id="board" src="index.html"></iframe>
 </div></div>
+<script src="pool-world.js"></script>
 <script>
 // ── ✏️ Lambda URL ──
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 const SLIDES_DIR = 'slides/';        // Canva 匯出 PNG 放呢度：slides/S03_R1_sit.png；揭示：slides/S25_R6_reveal_p3.png
 // ── 油畫底圖（Gamma 生成，油畫風、冇真人）。本地 art/<key>.jpg 優先，冇就用 CDN ──
-function artKeyFor(s, st) { return s.kind==='title'?'title':s.round||'R6'; }
+function artKeyFor(s, st) { return s.kind==='title'||s.kind==='reveal'?'title':s.round||'R6'; }
 // ─────────────
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
@@ -269,17 +279,8 @@ function setBg(url, version) {
 let artFlip = false;
 function loadImg(url) { return new Promise(res=>{const i=new Image();const t=setTimeout(()=>res(false),15000);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=url;}); }
 async function setArt(key, version) {
-  const a = $('artA'), b = $('artB'); const next = artFlip ? a : b, prev = artFlip ? b : a; artFlip = !artFlip;
-  const local = key==='title'?'art/passage.png':'art/life-scenes.png';
-  const cell=Math.max(0,Math.min(5,Number((key.match(/R([1-6])/)||[])[1]||6)-1));
-  next.style.backgroundSize=key==='title'?'cover':'200% 300%';
-  next.style.backgroundPosition=key==='title'?'center':`${cell%2*100}% ${Math.floor(cell/2)*50}%`;
-  const url=(await loadImg(local))?local:null;
-  $('status').dataset.artMissing=url?'':'油畫未能載入，文字仍可使用。';
-  if(version!==showVersion)return false;
-  if (!url) { next.classList.remove('on'); prev.classList.remove('on'); return false; }
-  next.style.backgroundImage = `url(${url})`; next.classList.add('dark'); next.classList.add('on'); prev.classList.remove('on');
-  return true;
+  if(!window.PoolWorld)return false;
+  return await window.PoolWorld.go(key);
 }
 const stagger = (sel, base = .08) => document.querySelectorAll(sel).forEach((el, i) => el.style.animationDelay = (base * i + .15) + 's');
 
@@ -311,6 +312,7 @@ function html(s, st) {
   if(k==='storm')return `<div class="slide storm-still"><div class="sub">人生的風暴</div><h1>${esc(s.title)}</h1><div class="rule"></div><div class="body">${esc(s.body)}</div></div>`;
   if (k === 'auction') return `<div class="coins">${Array.from({ length: 28 }, (_, i) => `<i style="left:${(i * 3.6) % 100}%;animation-delay:${(i % 7) * .22}s"></i>`).join('')}</div>
     <div class="slide lines"><h1 style="font-size:10vh">${esc(s.title)}</h1><div class="rule"></div><div class="body" style="font-size:3.4vh;text-align:center">${esc(s.body)}</div></div>`;
+  if (k === 'rush' && window.BETHESDA_OFFLINE) return `<div class="slide"><div class="sub">離線 · ${esc(s.round)}</div><h1>池邊衝刺</h1><div class="body">由主持人使用預備的口頭或紙本題目。<br>完成後記錄名次，並在離線控制台派發金幣。</div><div class="hint">${esc(s.sub)}<br>離線期間不使用 Kahoot。</div></div>`;
   if (k === 'rush') {                                                     // 🏊 池邊衝刺：QR ＋ PIN（由 /state.kahoot 帶入）
     const kh = st.kahoot || {}; const pin = kh.pin || '';
     return `<div class="slide"><div class="sub" style="font-size:2.6vh;letter-spacing:.3em">🏊 池邊衝刺 · ${esc(s.round)}</div>
@@ -362,6 +364,7 @@ async function show(st, force) {
   const artKey=artKeyFor(s,st);
   $('frame').classList.toggle('with-art', hasArt);
   $('frame').classList.toggle('dark-art', hasArt);
+  $('frame').classList.toggle('opening-layout',s.kind==='title');
   $('frame').classList.toggle('ranking-layout',s.kind==='reveal'&&st.reveal<8);
   $('frame').classList.toggle('dense-layout',['choose','wind','aftermath'].includes(s.kind));
   if(changedPage){
@@ -406,18 +409,20 @@ async function poll() {
     if (!PINNED) await show(st);
   } catch { $('status').textContent = '連線不上，重試中'; } finally { polling=false; }
 }
-let PREVIEW=[], previewIndex=0;
+let PREVIEW=[], previewIndex=0, previewToken="";
 function previewMove(n){if(!PREVIEW.length)return;previewIndex=Math.max(0,Math.min(PREVIEW.length-1,n));PINNED=true;LOCAL=previewIndex;$('pin').classList.add('on');$('pin').textContent='主持人預覽 · 示例排名';$('previewSelect').value=String(previewIndex);show(PREVIEW[previewIndex],true);}
 function previewMessage(text){$('reviewMessage').textContent=text;$('reviewMessage').hidden=false;}
 $('openPreview').onclick=()=>{const box=$('reviewMessage');if(!box.hidden){box.hidden=true;return;}previewMessage('請在 Telegram 主持人控制台輸入 /preview，然後開啟收到的預覽連結。可逐頁查看，不會推進正式遊戲。');};
 $('previewPrev').onclick=()=>previewMove(previewIndex-1);$('previewNext').onclick=()=>previewMove(previewIndex+1);$('previewSelect').onchange=e=>previewMove(Number(e.target.value));
 $('previewLive').onclick=()=>{PINNED=false;$('pin').classList.remove('on');if(CUR)show(CUR,true);};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea'))return;if(e.key==='Escape'){$('previewLive').click();$('reviewMessage').hidden=true;}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){if(PREVIEW.length)previewMove(previewIndex+(e.key==='ArrowRight'?1:-1));else $('openPreview').click();}});
-async function loadPreview(){const token=new URLSearchParams(location.hash.slice(1)).get('preview');if(!token)return;history.replaceState(null,'',location.pathname+location.search);PINNED=true;
+async function loadPreview(){const token=new URLSearchParams(location.hash.slice(1)).get('preview');if(!token)return;previewToken=token;history.replaceState(null,'',location.pathname+location.search);PINNED=true;
  try{const r=await fetch(BASE+'/preview',{headers:{Authorization:'Bearer '+token},cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok||!d.pages?.length)throw Error(d.msg||'預覽未能載入');PREVIEW=d.pages;
- for(const id of ['previewPrev','previewSelect','previewNext','previewLive'])$(id).hidden=false;
+ for(const id of ['previewPrev','previewSelect','previewNext','previewLive','backupOffline'])$(id).hidden=false;
  $('previewSelect').innerHTML=PREVIEW.map((p,i)=>`<option value="${i}">${i+1}/${PREVIEW.length} · ${esc(p.slide.round||'開場')} ${esc(p.slide.title)}${p.reveal?' · '+p.reveal:''}</option>`).join('');previewMove(0);
  }catch(e){PINNED=false;previewMessage(e.message);}}
+$('backupOffline').onclick=async()=>{try{const r=await fetch(BASE+'/offline-backup',{headers:{Authorization:'Bearer '+previewToken},cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.msg||'備份未能取得');const u=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='畢士大離線備份-'+new Date().toISOString().replaceAll(':','-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);previewMessage('已下載目前時間的備份。切換離線前，請停止所有線上操作；離線版不會自動回灌雲端。');}catch(e){previewMessage(e.message);}};
+$('motionMode').onclick=()=>{const b=$('motionMode'),q=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',String(q));b.textContent=q?'恢復動態':'減少動態';document.body.classList.toggle('quiet-motion',q);window.PoolWorld?.quiet(q);};
 loadPreview();
 poll(); setInterval(poll, 2000);   // v6：狀態小、快取短，2 秒一輪
 </script>
