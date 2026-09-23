@@ -1,0 +1,42 @@
+{
+  "version": "R6",
+  "playback": "1920x1080 H.264, silent",
+  "scenes": {
+    "title": {
+      "poster": "title.webp",
+      "hold": "hold-title.mp4"
+    },
+    "R1": {
+      "poster": "R1.webp",
+      "hold": "hold-R1.mp4"
+    },
+    "R2": {
+      "poster": "R2.webp",
+      "hold": "hold-R2.mp4"
+    },
+    "R3": {
+      "poster": "R3.webp",
+      "hold": "hold-R3.mp4"
+    },
+    "R4": {
+      "poster": "R4.webp",
+      "hold": "hold-R4.mp4"
+    },
+    "R5": {
+      "poster": "R5.webp",
+      "hold": "hold-R5-final.mp4"
+    },
+    "R6": {
+      "poster": "R6.webp",
+      "hold": "hold-R6.mp4"
+    }
+  },
+  "transitions": {
+    "title>R1": "travel-title-R1.mp4",
+    "R1>R2": "travel-R1-R2.mp4",
+    "R2>R3": "travel-R2-R3.mp4",
+    "R3>R4": "travel-R3-R4-take2.mp4",
+    "R4>R5": "travel-R4-R5.mp4",
+    "R5>R6": "travel-R5-R6.mp4"
+  }
+}
