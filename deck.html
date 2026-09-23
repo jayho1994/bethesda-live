@@ -219,6 +219,20 @@ html,body{height:100%;overflow:hidden;background:#0d0b09;color:var(--ink);font-f
 #status{color:#d6c6ab;background:#191610d9;padding:5px}#timer{color:#f0d2a1;background:#191610d9;padding:4px 12px;border-radius:4px}
 #frame.dark-art .big.ok{color:#b4dfb0}#frame.dark-art .big.no{color:#f0b8a8}
 @media(prefers-reduced-motion:reduce){.depth-portal,.scene-memory.arrive{animation:none!important}.depth-portal{display:none}.art.on{animation:none!important;transform:none!important}}
+/* Dense decision and station pages keep all content on the projector. */
+#frame.with-art.dense-layout .slide{padding:10vh 5% 8vh 38%}
+#frame.dark-art.dense-layout .slide::before{left:36%}
+#frame.dense-layout .slide h1{font-size:5.4vh!important}
+#frame.dense-layout .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:1.3vh;margin-top:2vh}
+#frame.dense-layout .st{min-width:0;padding:1.4vh 1.6vh}
+#frame.dense-layout .st .e{font-size:3.7vh}
+#frame.dense-layout .st .n{font-size:2.6vh!important;line-height:1.35;margin-top:.5vh}
+#frame.dense-layout .st .t{font-size:1.9vh;line-height:1.4}
+#frame.dense-layout .goal{font-size:2.2vh;margin-top:2vh;padding:1.5vh 2vh}
+#frame.dense-layout .hint{font-size:2.1vh;margin-top:2vh;padding:.8vh 2vh}
+#frame.dense-layout .body{font-size:2.6vh!important;line-height:1.65}
+#frame.dense-layout .opts{margin-top:2vh;gap:1vh}
+#frame.dense-layout .opt{font-size:2.4vh;padding:1.1vh 1.7vh}
 </style>
 </head>
 <body><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="previewLive" hidden>返回現場</button></nav><aside id="reviewMessage" hidden></aside>
@@ -349,6 +363,7 @@ async function show(st, force) {
   $('frame').classList.toggle('with-art', hasArt);
   $('frame').classList.toggle('dark-art', hasArt);
   $('frame').classList.toggle('ranking-layout',s.kind==='reveal'&&st.reveal<8);
+  $('frame').classList.toggle('dense-layout',['choose','wind','aftermath'].includes(s.kind));
   if(changedPage){
     const portal=$('depthPortal');portal.classList.remove('travel');void portal.offsetWidth;portal.classList.add('travel');
     const relic=$('sceneMemory');const cell=Math.max(0,Math.min(5,Number((s.round||'R1').slice(1))-1));
