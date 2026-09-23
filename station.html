@@ -13,7 +13,7 @@
   background-color:#F0EEE6;
   background-image:
     linear-gradient(90deg,rgba(240,238,230,.55) 0%,rgba(240,238,230,.86) 45%,rgba(240,238,230,.96) 100%),
-    url('art/title.jpg'),url('https://cdn.gamma.app/19d48kq1nk9ajho/design-anything/w45FHYVDICi0rL6IvZMKB/oAuyE85Qvmeh-fsA4Qv9W.jpg');
+    url('art/passage.png');
   background-size:cover,cover,cover;background-position:left center;background-attachment:fixed;}
   header{padding:14px;text-align:center;border-bottom:1px solid var(--line);background:rgba(240,238,230,.6);backdrop-filter:blur(6px)}
   header h1{margin:0;font-size:20px;letter-spacing:.14em;font-family:var(--cjk);font-weight:600} header .sub{color:var(--muted);font-size:12.5px;margin-top:4px;font-family:var(--cjk)}
@@ -290,5 +290,6 @@ function clearReviewedQueue(){if(!confirm('主持人已核對這部裝置的所�
 let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
 renderQ(); loadRoster();
 </script>
+<script src="quality.js"></script>
 </body>
 </html>

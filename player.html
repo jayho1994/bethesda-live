@@ -212,6 +212,28 @@ details[open] summary::before{content:"▾ "}
   border-radius:11px;padding:10px;text-align:center;font-size:12.5px;margin-bottom:12px;font-family:var(--cjk)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* R3: rendered portrait and the player's actual decision traces. */
+.portrait-card{background:#e9dfcc;border:1px solid #c8b592;overflow:hidden}
+.avatarwrap{position:relative;display:block!important;min-height:340px;margin:12px -16px 0;isolation:isolate;background:#cfc0a4}
+.life-portrait{width:100%;aspect-ratio:1;background-image:url('art/character-rear.png');background-size:300% 200%;background-position:var(--portrait-x) var(--portrait-y);box-shadow:inset 0 -28px 40px #35271822;transition:opacity .6s ease}
+.life-portrait.mini{width:86px;height:86px;aspect-ratio:1;border:1px solid #c2ac88;box-shadow:0 4px 10px #49311e22}
+.life-traces{position:relative;margin-top:-50px;padding:0 18px 18px;display:grid;gap:8px}
+.life-trace{position:relative;background:#eee5d5f5;border-left:2px solid #997a4f;padding:12px 15px;box-shadow:0 8px 22px #251b1a25;animation:trace-arrive .7s ease both;text-align:left}
+.life-trace small{font-size:11px;letter-spacing:.15em;color:#785f40}.life-trace p{font-family:var(--cjk,serif);font-size:14px;line-height:1.8;margin:6px 0 0}
+.trace-1{margin-left:12px}.trace-2{margin-left:24px}.avcap{line-height:1.8;padding:14px;font-family:serif}.avcap small{font-size:12px;color:#6e604f}
+@keyframes trace-arrive{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.life-trace,.life-portrait{animation:none;transition:none}}
+
+.avatarwrap>.life-portrait{transform:rotate(var(--life-turn,0deg)) scale(1.05);transform-origin:50% 80%;transition:transform 700ms cubic-bezier(.2,.8,.2,1)}
+.avatarwrap>.life-portrait:after{content:"";position:absolute;inset:50% 14% 0;background:linear-gradient(0deg,var(--fabric-tint),transparent);mix-blend-mode:multiply;pointer-events:none}
+.fabric-linen{--fabric-tint:#a9916d25}.fabric-slate{--fabric-tint:#35445142}.fabric-umber{--fabric-tint:#68432e42}
+.carried-memories{position:absolute;left:12px;right:12px;top:45%;display:flex;justify-content:space-between;gap:10px;pointer-events:none}
+.carried-memory{margin:0;width:27%;max-width:110px;background:#241c16;border:1px solid #b4976f;box-shadow:0 8px 25px #17120dcc;transform:rotate(-4deg) translateY(14px);animation:trace-arrive .7s ease both}
+.carried-memory.memory-1{transform:rotate(2deg) translateY(30px)}.carried-memory.memory-2{transform:rotate(5deg)}
+.memory-image{aspect-ratio:1;background-image:url('art/memory-objects.png');background-size:300% 200%}
+.carried-memory figcaption{color:#f4eadb;background:#241c16;font-size:11px;line-height:1.5;padding:7px;text-align:left}
+.life-traces{margin-top:0}.life-portrait.mini{position:relative;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -287,116 +309,14 @@ function dominant(t, roundNum) {
 }
 
 // 生成一個人物 SVG。size: 'big' | 'mini'
-function avatarSVG(tokens, roundNum, opts) {
-  opts = opts || {};
-  const mini = opts.mini;
-  const uid = 'a' + Math.random().toString(36).slice(2, 8);
-  const dom = dominant(tokens || {}, roundNum);
-  const total = ['green','red','purple','yellow','blue'].reduce((s, k) => s + (tokens?.[k] || 0), 0);
-  const ink = '#2B2A27', SW = mini ? 2.4 : 2.1;
-  // 站姿：代幣愈多愈挺；風暴回合微駝
-  const slouch = roundNum === 5 ? 5 : Math.max(0, 4 - Math.min(4, total / 4));
-  const P = [];                                            // 圖層
-
-  // ── 服裝／道具：按人生階段 ──
-  const wear = {
-    1: { top:'#6E86A8', label:'校服' },      // 青少年 · 校服
-    2: { top:'#8A7CA8', label:'連帽衫' },    // 大學
-    3: { top:'#5E7F86', label:'恤衫' },      // 初職
-    4: { top:'#4A4A52', label:'西裝' },      // 建立期
-    5: { top:'#6B5F58', label:'風衣（濕透）' },
-    6: { top:'#7B7269', label:'便服' },
-  }[roundNum] || { top:'#6E86A8', label:'' };
-
-  // 身
-  P.push(`<path d="M100 ${86+slouch} C86 ${92+slouch} 78 ${112+slouch} 77 ${150+slouch}
-      L123 ${150+slouch} C122 ${112+slouch} 114 ${92+slouch} 100 ${86+slouch} Z"
-      fill="${wear.top}" fill-opacity=".82" stroke="${ink}" stroke-width="${SW}" stroke-linejoin="round"/>`);
-  // 腳
-  P.push(`<path d="M86 ${150+slouch} L84 ${196+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round" fill="none"/>
-          <path d="M114 ${150+slouch} L117 ${196+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round" fill="none"/>
-          <path d="M78 ${198+slouch} L92 ${198+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round"/>
-          <path d="M111 ${198+slouch} L125 ${198+slouch}" stroke="${ink}" stroke-width="${SW+.6}" stroke-linecap="round"/>`);
-  // 手
-  const armR = roundNum === 6 ? `M120 ${104+slouch} C134 ${118+slouch} 132 ${136+slouch} 124 ${146+slouch}`
-             : `M120 ${104+slouch} C136 ${114+slouch} 140 ${132+slouch} 136 ${148+slouch}`;
-  P.push(`<path d="M80 ${104+slouch} C64 ${114+slouch} 60 ${132+slouch} 64 ${148+slouch}"
-      stroke="${ink}" stroke-width="${SW+.4}" fill="none" stroke-linecap="round"/>
-    <path d="${armR}" stroke="${ink}" stroke-width="${SW+.4}" fill="none" stroke-linecap="round"/>`);
-  // 頭
-  P.push(`<ellipse cx="100" cy="${62+slouch}" rx="25" ry="27" fill="#F3E2D2" stroke="${ink}" stroke-width="${SW}"/>`);
-  // 髮
-  P.push(`<path d="M76 ${56+slouch} C78 ${34+slouch} 122 ${34+slouch} 124 ${56+slouch}
-      C118 ${46+slouch} 106 ${42+slouch} 100 ${44+slouch} C92 ${42+slouch} 82 ${46+slouch} 76 ${56+slouch} Z"
-      fill="#3A322C" stroke="${ink}" stroke-width="${SW-.4}" stroke-linejoin="round"/>`);
-  // 表情：內在高＝閉眼安靜；風暴＝擔憂；否則普通
-  const calm = (tokens?.purple || 0) >= 3;
-  if (roundNum === 5) {
-    P.push(`<path d="M89 ${60+slouch} l7 3 M111 ${60+slouch} l-7 3" stroke="${ink}" stroke-width="${SW-.5}" stroke-linecap="round"/>
-      <path d="M92 ${76+slouch} C97 ${72+slouch} 103 ${72+slouch} 108 ${76+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
-  } else if (calm) {
-    P.push(`<path d="M89 ${62+slouch} C92 ${65+slouch} 96 ${65+slouch} 99 ${62+slouch}" stroke="${ink}" stroke-width="${SW-.5}" fill="none" stroke-linecap="round"/>
-      <path d="M103 ${62+slouch} C106 ${65+slouch} 110 ${65+slouch} 113 ${62+slouch}" stroke="${ink}" stroke-width="${SW-.5}" fill="none" stroke-linecap="round"/>
-      <path d="M93 ${75+slouch} C98 ${79+slouch} 104 ${79+slouch} 109 ${75+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
-  } else {
-    P.push(`<circle cx="92" cy="${62+slouch}" r="2.4" fill="${ink}"/><circle cx="110" cy="${62+slouch}" r="2.4" fill="${ink}"/>
-      <path d="M93 ${76+slouch} C98 ${79+slouch} 104 ${79+slouch} 109 ${76+slouch}" stroke="${ink}" stroke-width="${SW-.6}" fill="none" stroke-linecap="round"/>`);
-  }
-  // 階段特徵
-  if (roundNum === 1) {   // 校服領 + 書包帶
-    P.push(`<path d="M92 ${89+slouch} L100 ${100+slouch} L108 ${89+slouch}" fill="none" stroke="#FFFFFF" stroke-width="${SW+1.2}" stroke-linejoin="round"/>
-      <path d="M92 ${89+slouch} L100 ${100+slouch} L108 ${89+slouch}" fill="none" stroke="${ink}" stroke-width="${SW-.5}" stroke-linejoin="round"/>
-      <path d="M100 ${100+slouch} l-3 13 l3 4 l3-4 z" fill="#B03A3A" stroke="${ink}" stroke-width="1.2"/>
-      <path d="M84 ${94+slouch} L112 ${140+slouch}" stroke="#6B4A32" stroke-width="${SW+1}" fill="none" opacity=".9"/>`);
-  } else if (roundNum === 2) {   // 連帽 + 背囊
-    P.push(`<path d="M84 ${90+slouch} C92 ${100+slouch} 108 ${100+slouch} 116 ${90+slouch}"
-        fill="none" stroke="${ink}" stroke-width="${SW-.4}"/>
-      <path d="M78 ${104+slouch} C68 ${112+slouch} 68 ${136+slouch} 76 ${142+slouch}"
-        fill="#7A6A58" fill-opacity=".55" stroke="${ink}" stroke-width="${SW-.6}"/>`);
-  } else if (roundNum === 3) {   // 恤衫鈕 + 工作證
-    P.push(`<path d="M100 ${92+slouch} L100 ${146+slouch}" stroke="${ink}" stroke-width="1.1" opacity=".65"/>
-      <circle cx="100" cy="${108+slouch}" r="1.7" fill="${ink}"/><circle cx="100" cy="${124+slouch}" r="1.7" fill="${ink}"/>
-      <path d="M92 ${90+slouch} L104 ${118+slouch}" stroke="#8A8A8A" stroke-width="1.4"/>
-      <rect x="100" y="${118+slouch}" width="11" height="14" rx="2" fill="#EFEAE0" stroke="${ink}" stroke-width="1.3"/>`);
-  } else if (roundNum === 4) {   // 西裝褸 + 公事包
-    P.push(`<path d="M88 ${90+slouch} L100 ${106+slouch} L112 ${90+slouch}" fill="none" stroke="${ink}" stroke-width="${SW-.4}"/>
-      <path d="M100 ${106+slouch} l-3.5 15 l3.5 5 l3.5-5 z" fill="#7C2F2F" stroke="${ink}" stroke-width="1.2"/>
-      <rect x="126" y="${146+slouch}" width="24" height="18" rx="2.5" fill="#5A4636" stroke="${ink}" stroke-width="${SW-.5}"/>
-      <path d="M133 ${146+slouch} a5 5 0 0 1 10 0" fill="none" stroke="${ink}" stroke-width="1.4"/>`);
-  } else if (roundNum === 5) {   // 風雨線
-    P.push(`<g opacity=".55" stroke="#5E7A88" stroke-width="1.6" stroke-linecap="round">
-      <path d="M40 ${40+slouch} l14 26"/><path d="M58 ${28+slouch} l14 26"/>
-      <path d="M148 ${34+slouch} l14 26"/><path d="M164 ${56+slouch} l12 22"/>
-      <path d="M28 ${76+slouch} l12 22"/></g>`);
-  } else if (roundNum === 6) {   // 靜止：坐低嘅光
-    P.push(`<ellipse cx="100" cy="${206+slouch}" rx="46" ry="7" fill="#C9BFAE" opacity=".45"/>`);
-  }
-  // 主導代幣道具
-  if (dom === '__tie__') P.push(`<g opacity=".5" stroke="${ink}" stroke-width="1.6" fill="none">
-      <path d="M52 ${118+slouch} l-14 -8 M52 ${118+slouch} l-14 8"/>
-      <path d="M148 ${118+slouch} l14 -8 M148 ${118+slouch} l14 8"/></g>`);
-  if (dom === 'green')  P.push(`<rect x="128" y="${142+slouch}" width="22" height="16" rx="2" fill="${TOKCOL.green}" fill-opacity=".8" stroke="${ink}" stroke-width="1.6"/>`);
-  if (dom === 'red')    P.push(`<g transform="translate(150 ${112+slouch}) scale(.62)"><ellipse cx="0" cy="0" rx="17" ry="19" fill="#F3E2D2" stroke="${ink}" stroke-width="3"/><path d="M-16 34 C-16 12 16 12 16 34 Z" fill="${TOKCOL.red}" fill-opacity=".7" stroke="${ink}" stroke-width="3"/></g>`);
-  if (dom === 'purple') P.push(`<g fill="none" stroke="${TOKCOL.purple}" stroke-width="1.7" opacity=".62">
-      <circle cx="100" cy="${62+slouch}" r="40"/><circle cx="100" cy="${62+slouch}" r="50"/></g>`);
-  if (dom === 'yellow') P.push(`<g fill="${TOKCOL.yellow}" opacity=".85">
-      <rect x="56" y="${44+slouch}" width="5" height="5" rx="1" transform="rotate(18 58 46)"/>
-      <rect x="140" y="${54+slouch}" width="5" height="5" rx="1" transform="rotate(-24 142 56)"/>
-      <rect x="150" y="${88+slouch}" width="4" height="4" rx="1"/>
-      <rect x="46" y="${86+slouch}" width="4" height="4" rx="1"/></g>`);
-  if (dom === 'blue')   P.push(`<g transform="translate(140 ${128+slouch}) scale(.86)">
-      <path d="M-9 -12 l18 0 l-2 6 c8 5 10 16 6 22 c-4 6 -22 6 -26 0 c-4 -6 -2 -17 6 -22 z"
-        fill="${TOKCOL.blue}" fill-opacity=".55" stroke="${ink}" stroke-width="2"/></g>`);
-
-  const filt = `<filter id="${uid}"><feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="${(total*7+roundNum*13)%97}" result="n"/>
-    <feDisplacementMap in="SourceGraphic" in2="n" scale="${mini ? 1.4 : 2.2}" xChannelSelector="R" yChannelSelector="G"/></filter>`;
-  return `<svg class="${mini ? '' : 'avatar'}" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" role="img">
-    <defs>${filt}</defs><g filter="url(#${uid})">${P.join('')}</g></svg>`;
+function avatarSVG(tokens, roundNum, opts={}) {
+  const age=Math.max(0,Math.min(5,(roundNum||1)-1));
+  return `<div class="life-portrait ${opts.mini?'mini':''}" role="img" aria-label="人生第 ${age+1} 階段的油畫人物" style="--portrait-x:${age%3*50}%;--portrait-y:${age<3?0:100}%"></div>`;
 }
 
 const DOMLABEL = { green:'事業行頭', red:'關係行頭', purple:'內在行頭', yellow:'享樂行頭', blue:'信仰行頭',
   __tie__:'兩邊拉扯，未分高下' };
-const WEARLABEL = { 1:'校服', 2:'連帽衫', 3:'恤衫', 4:'西裝', 5:'風衣（濕透）', 6:'便服' };
+const WEARLABEL = {1:'少年：未寫完的一頁',2:'大學：向外走的時候',3:'初職：責任開始有了重量',4:'建立：手中多了一把鑰匙',5:'風暴：留下來的，仍要承擔',6:'回望：歲月留在手上'};
 
 function growthHTML(v) {
   const rn = stageOf(v.round);
@@ -418,10 +338,12 @@ function growthHTML(v) {
       : esc(c.act.replace('🎭', '')) + ' — <em>' + esc(c.note) + '</em>';
     return '<div class="tlrow"><span class="rd">' + esc(c.round) + '</span><span class="tx">' + label + '</span></div>';
   }).join('');
-  return '<div class="card"><h2>🧍 我現在的樣子 <span class="hint">' + esc(v.round) + '</span></h2>' +
-    '<div class="avatarwrap">' + avatarSVG(curTok, rn, {}) + '</div>' +
+  return '<div class="card portrait-card"><h2>我走到了這裏 <span class="hint">' + esc(v.round) + '</span></h2>' +
+    '<div class="avatarwrap fabric-'+esc(v.appearance?.fabric||'linen')+'" style="--life-turn:'+Number(v.appearance?.turn||0)+'deg">' + avatarSVG(curTok, rn, {}) +
+    '<div class="carried-memories">'+(v.appearance?.memories||[]).slice(-3).map((m,i)=>'<figure class="carried-memory memory-'+i+'"><div class="memory-image" style="background-position:'+(m.object%3*50)+'% '+(m.object<3?0:100)+'%"></div><figcaption>'+esc(m.label)+'</figcaption></figure>').join('')+'</div>'+
+    '<div class="life-traces">'+(v.choices||[]).filter(c=>c.act.startsWith('🎭')||c.act==='💰開標').slice(-3).map((c,i)=>'<div class="life-trace trace-'+i+'"><small>'+esc(c.round)+' · 已走過</small><p>'+esc(c.choiceText||c.note)+'</p></div>').join('')+'</div></div>' +
     '<div class="avcap">' + esc(WEARLABEL[rn] || '') +
-      (dom ? ' · <b>' + DOMLABEL[dom] + '</b>' : ' · 一張白紙，尚未落注') + '</div>' +
+      '<br><small>你的選擇留在下方；這幅人生肖像不替你判定好壞。</small>' + '</div>' +
     (steps ? '<div class="growth">' + steps + '</div>' : '') +
     (tl ? '<div class="tl">' + tl + '</div>' : '') + '</div>';
 }
@@ -646,5 +568,6 @@ if (!ID || !TOKEN) {
   poll(); setInterval(() => { if (document.hidden) return; const idle = VIEW && !VIEW.pending && !LOCALPROMPT; if (idle && (Date.now() - LASTPOLL) < 15000) return; poll(); }, 8000);
 }
 </script>
+<script src="quality.js"></script>
 </body>
 </html>
