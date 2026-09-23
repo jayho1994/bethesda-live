@@ -244,6 +244,8 @@ body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-mot
 @media(prefers-reduced-motion:reduce){#content .lines>*,#content .st,#content .opt,#content .pd,#content .big,#content .rank,#content .row,#content .qrbox,#content .goal{opacity:1!important}}
 #worldNotice{position:absolute;left:18px;top:72px;z-index:1900;max-width:420px;background:#192620e8;color:#fff2d4;border:1px solid #bd9b5e;padding:12px;font:15px/1.7 sans-serif}#worldNotice[hidden]{display:none}#poolWorld{object-fit:contain}
 #frame.scene-only #content,#frame.scene-only #frameShade{visibility:hidden}#frame.scene-only:after{opacity:0}
+/* R6 pre-rendered cinema stays behind untransformed copy. */
+#poolWorld{overflow:hidden;background:#141914}#poolWorld video,#poolWorld .cinema-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}#poolWorld video{visibility:hidden}#poolWorld video.cinema-on{visibility:visible}#worldNotice button{margin-left:8px;padding:6px 10px;background:#eee0bc;color:#201c16;border:0;cursor:pointer}
 </style>
 </head>
 <body><button id="motionMode" aria-pressed="false">減少動態</button><nav id="reviewControls" aria-label="主持人預覽控制"><button id="openPreview">主持人預覽</button><button id="previewPrev" hidden>上一頁</button><select id="previewSelect" aria-label="預覽頁面" hidden></select><button id="previewNext" hidden>下一頁</button><button id="sceneView" aria-pressed="false" hidden>檢視場景</button><button id="previewLive" hidden>返回現場</button><button id="backupOffline" hidden>下載離線備份</button></nav><aside id="reviewMessage" hidden></aside>
@@ -256,7 +258,7 @@ body.quiet-motion #content *,body.quiet-motion #content *::before,body.quiet-mot
   <div id="foot"></div><div id="status"></div>
   <iframe id="board" src="index.html"></iframe>
 </div></div>
-<script src="pool-world.js?r5=20260923-4"></script>
+<script src="cinema.js?r6=20260923-2"></script>
 <script>
 // ── ✏️ Lambda URL ──
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
@@ -430,6 +432,6 @@ document.addEventListener('pool-world-ready',()=>{artReady=true;$('frame').class
 loadPreview();
 poll(); setInterval(poll, 2000);   // v6：狀態小、快取短，2 秒一輪
 </script>
-<script src="quality.js?r5=20260923-4"></script>
+<script src="quality.js?r6=20260923-2"></script>
 </body>
 </html>
