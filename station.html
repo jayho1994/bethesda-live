@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
-<title>站點 Check-in · 畢士大版</title>
+<title>站長入分 · 畢士大版</title><meta name="game-release" content="B1-C1-R8.2">
 <style>
   :root{--paper:#F0EEE6;--card:rgba(255,254,250,.86);--ink:#141413;--ink2:#3D3D3A;--muted:#6B6963;--faint:#A8A59D;
     --clay:#D97757;--clay-deep:#9E4529;--gold:#C9962B;--red:#BE5A4C;--line:rgba(20,20,19,.11);--line2:rgba(20,20,19,.06);
@@ -66,13 +66,13 @@
   <h1>站點 Check-in</h1>
   <div class="sub">玩家到站後，請選擇姓名，核對資料，再確認入分。</div>
 </header>
-<div class="cfg"><label>站長憑證 <input id="staff-key" type="password" autocomplete="off"></label><button onclick="staffLogin()">登入／更換憑證</button></div>
+<div class="cfg"><a href="start.html">返回營會入口</a><span id="connection" role="status">正在連接主持人…</span></div>
 <div class="cfg">
-  <select id="station">
+  <select id="station" aria-label="站點"><option value="">請選擇站點</option>
     <option value="career">📈 事業站</option><option value="relation">💑 關係站</option>
     <option value="inner">🧘 內在站</option><option value="fun">🎉 享樂站</option><option value="faith">⛪ 信仰站</option>
   </select>
-  <select id="round"><option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option><option>R6</option></select>
+  <select id="round" aria-label="目前回合" disabled><option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option><option>R6</option></select>
   <button onclick="loadRoster()">🔄 名單</button>
   <button onclick="openHist()">📝 本回合紀錄</button>
 </div>
@@ -127,15 +127,17 @@
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 // ──────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
-let STAFF_KEY=sessionStorage.getItem('bethesda_staff_A1')||'';
-const authHeaders=()=>({'Content-Type':'application/json',Authorization:'Bearer '+STAFF_KEY});
-async function staffState(){const r=await fetch(BASE+'/staff-state',{headers:authHeaders(),cache:'no-store',signal:AbortSignal.timeout(7000)});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'站長登入失敗。');return d;}
-async function staffLogin(){STAFF_KEY=$('staff-key').value.trim();try{const d=await staffState();sessionStorage.setItem('bethesda_staff_A1',STAFF_KEY);$('staff-key').value='';if(d.station!=='all')stSel.value=d.station;stSel.disabled=d.station!=='all';rdSel.value=d.round;syncLabels();await loadRoster();}catch(e){toast(e.message,true);}}
+let stationReady=false;
+const authHeaders=()=>({'Content-Type':'application/json'});
+async function staffState(){const r=await fetch(BASE+'/staff-state',{cache:'no-store',signal:AbortSignal.timeout(7000)});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'未能取得目前回合，請重試。');if(d.access!=='open')throw new Error('站長免登入版本尚未就緒，請聯絡主持人。');return d;}
+async function connectStation(){try{const d=await staffState();rdSel.value=d.round;stationReady=true;syncLabels();$('connection').textContent='已連線 · '+d.round+' · 毋須登入';await loadRoster();}catch(e){stationReady=false;$('connection').textContent=e.message;toast(e.message,true);}}
 const esc=s=>String(s??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const stSel=$('station'),rdSel=$('round');
 const stLabel=()=>stSel.options[stSel.selectedIndex].text;
 function syncLabels(){$('s-st').textContent=stLabel();$('s-rd').textContent=rdSel.value;}
-stSel.onchange=rdSel.onchange=syncLabels; syncLabels();
+const requestedStation=new URLSearchParams(location.search).get('station');
+if([...stSel.options].some(o=>o.value===requestedStation))stSel.value=requestedStation;
+stSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('station',stSel.value);location.href=u.href;}; syncLabels();
 
 // ── 名單（由 Notion 經 /roster 嚟：號碼排序 + 人名）──
 let ROSTER=[];
@@ -145,7 +147,7 @@ async function loadRoster(){
     const data=await r.json();if(!r.ok||!Array.isArray(data))throw new Error(data.msg||'名單讀取失敗');
     ROSTER=data.filter(x=>/^P[0-9]+$/i.test(x.id));
     renderRoster();
-  }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">請先登入有效的站長憑證，再重新載入名單。</div>';}
+  }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">未能載入名單；請確認網絡後按「名單」重試。</div>';}
 }
 const nameOf=id=>(ROSTER.find(p=>p.id===id)||{}).name||id;
 
@@ -184,6 +186,8 @@ function clearQ(){ if($('q')) $('q').value=''; renderRoster(); if($('q')) $('q')
 // ── 入分流程：揀分 →（事業站揀成敗）→ 確認畫面 → 送出 ──
 let cur={id:null,coins:0,success:null};
 function openModal(id){
+  if(!stationReady){toast('尚未連上主持人，請稍候再試。',true);connectStation();return;}
+  if(!stSel.value){toast('請先選擇你的站點。',true);stSel.focus();return;}
   cur={id,coins:0,success:null};
   $('m-name').textContent=`${id} ${nameOf(id)}`;
   $('m-ctx').textContent=`${rdSel.value} · ${stLabel()}`;
@@ -194,10 +198,12 @@ function openModal(id){
   const hostNotes=((p.host||{})[stSel.value]||[]);
   const eligNote = (stSel.value==='career'&&rdSel.value==='R5'&&(p.purple||0)<2) ? '<div class="hostnote warn">⚠️ 此人 🧘 不足 2，本回合不能進 📈（請其改站）</div>' : '';
   $('m-success').style.display='none';
-  $('m-hostnotes').innerHTML = eligNote + hostNotes.map(t=>'<div class="hostnote">🃏 '+t+'</div>').join('');
+  const rules={career:{R1:'六十秒疊塔。',R4:'贏家取得全池原色代幣，另獲二十枚事業幣。站長不入分；由 Telegram 開標。',R5:'五秒分泥膠。相同差距同分：最小差距 6、下一個不同差距 3、其餘 1。'},relation:{R2:'五題全答：三題或以上相同得 6，兩題相同得 3，其餘得 1。',R5:'四人或以上三根手指；少於四人五根。依出局次序評分。'},fun:{R1:'必須播至 Level 6：完成 Level 6 得 6；完成 Level 5 得 3；其餘參與者得 1。'}};
+  const stationRule=rules[stSel.value]?.[rdSel.value];
+  $('m-hostnotes').innerHTML = (stationRule?'<div class="hostnote">'+esc(stationRule)+'</div>':'') + eligNote + hostNotes.map(t=>'<div class="hostnote">🃏 '+esc(t)+'</div>').join('');
   $('m-coins').style.display=(fixed!=null)?'none':'block';
   $('m-coins-btns').innerHTML = isAuction
-    ? '<div style="color:var(--gold);font-size:14px;line-height:1.7">💰 R4 事業站＝暗標競投<br>出價、開標全部喺 Telegram／網頁進行<br>（唔使喺呢度入分）</div>'
+    ? '<div style="color:var(--gold);font-size:14px;line-height:1.7">💰 R4 事業站＝暗標競投<br>玩家在手機出價；MC 在 Telegram 開標<br>全池原色代幣＋額外二十枚事業幣</div>'
     : '<button class="t1" onclick="pick(1)">1<small>嘗試</small></button><button class="t3" onclick="pick(3)">3<small>達標</small></button><button class="t6" onclick="pick(6)">6<small>出色</small></button>';
   showStep('input');
   if(fixed!=null){ cur.coins=fixed; toConfirm(); }   // 🧘 固定 2、⛪ R3/R4 固定 3、R5 固定 6
@@ -261,7 +267,20 @@ async function doUndo(i){
 }
 
 // ── 離線佇列 + 送出（成功先入 history，帶 server 回傳嘅 solid 供 undo）──
-const QK='bethesda_queue_A1';
+const QK='bethesda_queue_R82_'+(stSel.value||'unselected');
+// Each station has its own durable queue. Preserve old operation IDs during migration.
+function migrateLegacyQueue(){
+  let old;try{old=JSON.parse(localStorage.getItem('bethesda_queue_A1')||'[]');}catch{return;}
+  const valid=[...stSel.options].map(o=>o.value).filter(Boolean),left=[];
+  for(const item of old){const station=item.payload?.station;if(!valid.includes(station)){left.push(item);continue;}
+    const key='bethesda_queue_R82_'+station;let queue;try{queue=JSON.parse(localStorage.getItem(key)||'[]');}catch{left.push(item);continue;}
+    if(!queue.some(x=>x.payload?.operationId&&x.payload.operationId===item.payload.operationId))queue.push({...item,needsReview:true});
+    localStorage.setItem(key,JSON.stringify(queue));
+  }
+  localStorage.setItem('bethesda_queue_A1',JSON.stringify(left));
+  if(left.length)$('connection').textContent='尚有舊版待處理操作，請由主持人核對。';
+}
+migrateLegacyQueue();
 const getQ=()=>{try{return JSON.parse(localStorage.getItem(QK)||'[]')}catch{return[]}};
 const setQ=q=>{localStorage.setItem(QK,JSON.stringify(q));renderQ();};
 function enqueue(p){const q=getQ();q.push(p);setQ(q);}
@@ -288,11 +307,11 @@ async function flush(){
 async function retryQueue(){const q=getQ();if(q.some(x=>!x.payload.operationId)){toast('舊版操作須由主持人核對。',true);return;}q.forEach(x=>x.needsReview=false);setQ(q);await flush();for(const [i,e] of getH().entries())if(e.undoPending&&!e.undone)await doUndo(i);}
 function clearReviewedQueue(){if(!confirm('主持人已核對這部裝置的所有待處理入分與撤回？解除後不會補送或撤回分數。'))return;setQ([]);const h=getH();h.forEach(e=>{if(e.undoPending){e.reviewClosed=true;}});setH(h);toast('已解除待核對項目；如需調整，請由主持人處理。');}
 let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
-renderQ(); loadRoster();
+renderQ(); connectStation();
 </script>
 <script>// Keep the displayed round aligned with MC; never change an open scoring form.
 let staffPolling=false;
-async function followMC(){if(!STAFF_KEY||staffPolling||document.hidden||$('modal').classList.contains('show'))return;staffPolling=true;try{const st=await staffState();if(rdSel.value!==st.round){rdSel.value=st.round;syncLabels();await loadRoster();toast('已跟隨主持人切換至 '+st.round);}}catch(e){toast('連線未更新；入分前會再次核對回合。',true);}finally{staffPolling=false;}}
+async function followMC(){if(staffPolling||document.hidden||$('modal').classList.contains('show'))return;staffPolling=true;try{const st=await staffState();stationReady=true;$('connection').textContent='已連線 · '+st.round+' · 毋須登入';if(rdSel.value!==st.round){rdSel.value=st.round;syncLabels();await loadRoster();toast('已跟隨主持人切換至 '+st.round);}}catch(e){toast('連線未更新；入分前會再次核對回合。',true);}finally{staffPolling=false;}}
 setInterval(followMC,4000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)followMC();});
 </script>
 <script src="quality.js"></script>
