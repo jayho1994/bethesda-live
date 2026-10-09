@@ -5,28 +5,28 @@ const frame=document.getElementById('frame'),root=document.createElement('div');
 root.id='poolWorld';root.setAttribute('aria-hidden','true');frame.prepend(root);
 const style=document.createElement('style');style.textContent=`#poolWorld video{visibility:visible!important;opacity:0;transition:opacity .42s ease;z-index:1}#poolWorld video.cinema-on{opacity:1}#poolWorld .cinema-poster{z-index:0}#poolWeather{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}#poolWorld[data-quiet="true"] video{transition:none}`;document.head.append(style);
 const poster=document.createElement('img');poster.alt='';poster.className='cinema-poster';root.append(poster);
-const slots=[0,1,2].map(()=>{const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.playsInline=true;v.preload='none';v.disablePictureInPicture=true;v.setAttribute('aria-hidden','true');root.append(v);return {v,path:null,promise:null,cancel:null,generation:0};});
+const slots=[0,1,2,3].map(()=>{const v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.playsInline=true;v.preload='none';v.disablePictureInPicture=true;v.setAttribute('aria-hidden','true');root.append(v);return {v,path:null,cacheKey:null,promise:null,cancel:null,generation:0};});
 const notice=document.createElement('aside');notice.id='worldNotice';notice.setAttribute('role','status');notice.hidden=true;
 const message=document.createElement('span'),retry=document.createElement('button');retry.textContent='重試影片';notice.append(message,retry);frame.append(notice);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),order=['title','R1','R2','R3','R4','R5','R6'];
-let manifest=null,wanted='title',shown=null,active=null,sequence=0,quiet=reduced.matches,failed=false,pending=false,frames=0,loops=0,lastTime=-1,lastProgress=performance.now(),prefetchTimer=0,travelTarget=null,travelFinishing=false,buffering=false;
+let manifest=null,wanted='title',shown=null,active=null,sequence=0,quiet=reduced.matches,failed=false,pending=false,frames=0,loops=0,lastTime=-1,lastProgress=performance.now(),prefetchTimer=0,travelTarget=null,travelFinishing=false,buffering=false,cycling=false;
 const diagnostics={version:'R9',handoffs:[],errors:[],lightning:[],stalls:0,readyEvents:0};
 const url=p=>new URL('cinema/'+p,document.baseURI).href;
 const key=k=>k==='title'?'title':/^R[1-6]$/.test(k)?k:'R6';
 const tell=(s,canRetry=true)=>{message.textContent=s+' ';retry.hidden=!canRetry;notice.hidden=false;};
-function dispose(s){s.generation++;s.cancel?.();s.cancel=null;s.v.pause();s.v.onended=null;s.v.classList.remove('cinema-on');s.v.removeAttribute('src');s.v.preload='none';s.v.load();s.path=null;s.promise=null;}
-function prune(keep=[]){slots.forEach(s=>{if(s!==active&&!keep.includes(s.path))dispose(s);});}
-function prepare(path){
- let s=slots.find(s=>s.path===path);if(s)return s.promise.then(()=>s);
+function dispose(s){s.generation++;s.cancel?.();s.cancel=null;s.v.pause();s.v.onended=null;s.v.classList.remove('cinema-on');s.v.removeAttribute('src');s.v.preload='none';s.v.load();s.path=null;s.cacheKey=null;s.promise=null;}
+function prune(keep=[]){slots.forEach(s=>{if(s!==active&&!keep.includes(s.path)&&!(active?.v.loop&&s.path===active.path))dispose(s);});}
+function prepare(path,cacheKey=path){
+ let s=slots.find(s=>s.cacheKey===cacheKey);if(s)return s.promise.then(()=>s);
  s=slots.find(s=>s!==active&&!s.path);if(!s)return Promise.reject(Error('影片準備位置不足。'));
- s.path=path;const generation=++s.generation,v=s.v;v.loop=false;v.preload='auto';v.dataset.clip=path;
+ s.path=path;s.cacheKey=cacheKey;const generation=++s.generation,v=s.v;v.loop=false;v.preload='auto';v.dataset.clip=path;
  s.promise=new Promise((resolve,reject)=>{
   let done=false;
   const finish=e=>{if(done)return;done=true;clearTimeout(timer);v.removeEventListener('loadeddata',ready);v.removeEventListener('error',bad);s.cancel=null;e?reject(e):resolve(s);};
   const ready=()=>finish(),bad=()=>finish(Error('影片未能載入。'));
   const timer=setTimeout(()=>finish(Error('影片載入逾時。')),25000);
   s.cancel=()=>finish(Error('superseded'));v.addEventListener('loadeddata',ready);v.addEventListener('error',bad);v.src=url(path);v.load();
- }).catch(e=>{if(s.generation===generation){s.promise=null;s.path=null;}throw e;});
+ }).catch(e=>{if(s.generation===generation){s.promise=null;s.path=null;s.cacheKey=null;}throw e;});
  return s.promise;
 }
 function decoded(s,seq){const v=s.v;return new Promise((resolve,reject)=>{
@@ -41,16 +41,17 @@ function decoded(s,seq){const v=s.v;return new Promise((resolve,reject)=>{
  });}
 function metrics(s){const v=s.v;if(v.currentTime!==lastTime){if(v.loop&&lastTime>v.currentTime+1)loops++;lastTime=v.currentTime;lastProgress=performance.now();if(buffering){buffering=false;if(!pending&&!failed)notice.hidden=true;}}
  Object.assign(root.dataset,{renderer:'prerendered-film',version:'R9',chapter:wanted,shown:shown||'',clip:s.path||'',travel:v.loop?'settled':'moving',rendered:String(frames),worldTime:v.currentTime.toFixed(3),videoWidth:String(v.videoWidth),videoHeight:String(v.videoHeight),quiet:String(quiet),loops:String(loops),pending:String(pending)});
+ if(v.loop&&v.duration-v.currentTime<.24&&!cycling&&!quiet)cycle(sequence);
  if(!v.loop&&travelTarget&&!travelFinishing&&v.duration-v.currentTime<.58)finishTravel(travelTarget,sequence);
 }
 function observe(s){const v=s.v;if(!v.requestVideoFrameCallback)return;v.requestVideoFrameCallback(()=>{if(s===active){frames++;metrics(s);}observe(s);});}
 slots.forEach(s=>{observe(s);s.v.addEventListener('timeupdate',()=>{if(s===active)metrics(s);});s.v.addEventListener('error',()=>{if(s===active){failed=true;tell('影片播放中斷，文稿與遊戲控制仍可使用。');}});});
 async function activate(s,loop,seq,destination,requestedAt){
  if(seq!==sequence||quiet)throw Error('superseded');
- const old=active,v=s.v;v.loop=loop;
+ const old=active,v=s.v;v.loop=loop;v.style.transitionDuration='';
  if(s!==old){v.currentTime=0;await decoded(s,seq);}else await v.play();
  if(seq!==sequence||quiet)throw Error('superseded');
- active=s;shown=destination;lastTime=-1;lastProgress=performance.now();loops=0;failed=false;notice.hidden=true;
+ active=s;shown=destination;v.dataset.scene=destination;lastTime=-1;lastProgress=performance.now();loops=0;failed=false;notice.hidden=true;
  v.style.zIndex='3';v.classList.add('cinema-on');if(old&&old!==s)old.v.style.zIndex='2';
  diagnostics.handoffs.push({scene:destination,kind:loop?'hold':'travel',cachedStartMs:Math.round(performance.now()-requestedAt),at:Math.round(performance.now())});
  if(diagnostics.handoffs.length>100)diagnostics.handoffs.shift();
@@ -58,15 +59,28 @@ async function activate(s,loop,seq,destination,requestedAt){
  await new Promise(resolve=>setTimeout(resolve,460));
  if(seq!==sequence)return;
  poster.hidden=true;if(old&&old!==s&&old!==active)dispose(old);v.style.zIndex='1';
- diagnostics.readyEvents++;document.dispatchEvent(new Event('pool-world-ready'));
+ if(loop)warmLoop(seq);diagnostics.readyEvents++;document.dispatchEvent(new Event('pool-world-ready'));
 }
 function report(e,seq){if(seq!==sequence||['superseded','hidden'].includes(e.message))return;failed=true;pending=false;diagnostics.errors.push(e.message);tell(e.message+' 現正保留原場景，文稿與遊戲控制可繼續。');}
 function scheduleAhead(seq){clearTimeout(prefetchTimer);prefetchTimer=setTimeout(()=>{
  if(seq!==sequence||quiet||document.hidden||pending||!active?.v.loop)return;
- const next=order[order.indexOf(shown)+1];if(!next)return;
- const paths=[manifest.transitions[shown+'>'+next],manifest.scenes[next].hold].filter(Boolean);prune(paths);
- Promise.all(paths.map(prepare)).catch(e=>{if(seq===sequence&&e.message!=='superseded')root.dataset.preload='retry-on-demand';});
+ const next=order[order.indexOf(shown)+1];warmLoop(seq);if(!next)return;
+ const paths=[manifest.transitions[shown+'>'+next],manifest.scenes[next].hold].filter(Boolean);prune([active.path,...paths]);
+ Promise.all(paths.map(p=>prepare(p))).catch(e=>{if(seq===sequence&&e.message!=='superseded')root.dataset.preload='retry-on-demand';});
  },250);}
+
+function warmLoop(seq){if(seq!==sequence||quiet||!active?.v.loop)return;const path=active.path,cacheKey=active.cacheKey===path?path+'#loop':path;prepare(path,cacheKey).catch(e=>{if(e.message!=='superseded')root.dataset.loopBuffer='retry';});}
+async function cycle(seq){
+ const old=active;if(!old?.v.loop)return;const next=slots.find(s=>s!==old&&s.path===old.path&&s.v.readyState>=2);if(!next)return;
+ cycling=true;
+ try{next.v.loop=true;next.v.style.transitionDuration='.15s';next.v.currentTime=0;await decoded(next,seq);if(seq!==sequence||active!==old||quiet)return;
+  active=next;lastTime=-1;lastProgress=performance.now();loops++;next.v.style.zIndex='3';old.v.style.zIndex='2';next.v.classList.add('cinema-on');metrics(next);
+  await new Promise(r=>setTimeout(r,180));
+  if(active===next&&seq===sequence){old.v.classList.remove('cinema-on');old.v.pause();old.v.currentTime=0;next.v.style.zIndex='1';next.v.style.transitionDuration='';}
+ }catch(e){if(e.message!=='superseded'&&e.message!=='hidden')diagnostics.errors.push('loop:'+e.message);}
+ finally{cycling=false;if(next!==active)next.v.pause();}
+}
+
 async function finishTravel(destination,seq){if(travelFinishing)return;travelFinishing=true;const started=performance.now();
  try{const s=await prepare(manifest.scenes[destination].hold);await activate(s,true,seq,destination,started);if(seq===sequence){pending=false;travelTarget=null;travelFinishing=false;scheduleAhead(seq);}}catch(e){travelFinishing=false;report(e,seq);}}
 async function run(next,previous,seq,requestedAt){
@@ -80,6 +94,7 @@ async function run(next,previous,seq,requestedAt){
  }catch(e){report(e,seq);}finally{clearTimeout(loadingNotice);}
 }
 function go(k,force=false){const next=key(k);if(next===wanted&&!force&&(pending||shown===next)&&!failed)return Promise.resolve(true);
+ if(active&&+getComputedStyle(active.v).opacity<.99){const visible=slots.find(s=>s!==active&&s.v.classList.contains('cinema-on')&&+getComputedStyle(s.v).opacity>=.99);if(visible){active=visible;shown=visible.v.dataset.scene||shown;lastTime=-1;}}
  const previous=shown;wanted=next;const seq=++sequence;clearTimeout(prefetchTimer);travelTarget=null;travelFinishing=false;pending=true;root.dataset.chapter=next;
  if(!manifest)return Promise.resolve(false);
  if(!active||quiet){poster.src=url(manifest.scenes[next].poster);poster.hidden=false;}
@@ -102,5 +117,5 @@ function drawWeather(t){weatherFrame=0;if(!weatherOn)return;weatherFrame=request
  if(t>=nextFlash){flashAt=t;nextFlash=t+6500+Math.random()*9500;diagnostics.lightning.push(Math.round(t));if(diagnostics.lightning.length>50)diagnostics.lightning.shift();}
  const age=t-flashAt;if(age<450){const strength=Math.exp(-age/90)*.20;ctx.fillStyle=`rgba(204,224,255,${strength})`;ctx.fillRect(0,0,960,540);}ctx.restore();root.dataset.lightningCount=String(diagnostics.lightning.length);
 }
-fetch('cinema/manifest.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('影片清單未能載入。');return r.json();}).then(m=>{if(m.version!=='R9'||!m.scenes?.title||!m.transitions)throw Error('影片清單格式不正確。');manifest=m;go(wanted,true);}).catch(e=>{failed=true;tell(e.message+' 文稿仍可使用，請重新載入。',false);});
+fetch('cinema/manifest-r9.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('影片清單未能載入。');return r.json();}).then(m=>{if(m.version!=='R9'||!m.scenes?.title||!m.transitions)throw Error('影片清單格式不正確。');manifest=m;go(wanted,true);}).catch(e=>{failed=true;tell(e.message+' 文稿仍可使用，請重新載入。',false);});
 })();
