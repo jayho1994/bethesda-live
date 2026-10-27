@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
-<title>站長入分 · 畢士大版</title><meta name="game-release" content="B1-C1-R8.2">
+<title>站長入分 · 畢士大版</title><meta name="game-release" content="B1-C1-R10">
 <style>
   :root{--paper:#F0EEE6;--card:rgba(255,254,250,.86);--ink:#141413;--ink2:#3D3D3A;--muted:#6B6963;--faint:#A8A59D;
     --clay:#D97757;--clay-deep:#9E4529;--gold:#C9962B;--red:#BE5A4C;--line:rgba(20,20,19,.11);--line2:rgba(20,20,19,.06);
@@ -58,6 +58,11 @@
   .toast.err{background:var(--red)}
   .toast.show{opacity:1}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.grid{padding-bottom:16px}.status{font-family:var(--ui)}
+.delivery-panel{margin:0 14px 90px;padding:16px;background:#faf9f5;border:1px solid var(--line);border-radius:14px}
+.delivery-heading{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.delivery-panel button{font:inherit;padding:10px 12px;border:1px solid #9e4529;border-radius:8px;background:white;color:#642b1a;margin:5px 4px 0 0;min-height:44px}
+.delivery-panel p{line-height:1.6;font-size:14px}.delivery-item{border-top:1px solid #b9b5ab;padding:14px 0;overflow-wrap:anywhere}.delivery-item strong,.delivery-item small{display:block;margin-top:6px}.delivery-item.rejected strong,#storage-error{color:#922e24}.delivery-item small{font-size:12px}.delivery-item p{margin:8px 0}button:disabled{opacity:.55;cursor:wait}.searchbar input{min-width:0}
 </style>
 
 </head>
@@ -90,7 +95,7 @@
   <div id="m-hostnotes"></div>
   <div id="step-input">
     <div id="m-coins">
-      <div style="color:var(--muted);font-size:13px;margin-bottom:8px" id="m-coins-label">base 代幣（站長話你知）</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:8px" id="m-coins-label">請按任務表現選擇基本分數</div>
       <div class="btns" id="m-coins-btns"></div>
     </div>
     <div id="m-success" style="display:none">
@@ -100,9 +105,9 @@
   </div>
   <div id="step-confirm" style="display:none">
     <div class="confirm-line" id="c-line"></div>
-    <div style="color:var(--gold);font-size:13.5px">⚠️ 入分前請覆核：人啱唔啱？分啱唔啱？</div>
+    <div style="color:var(--gold);font-size:13.5px">入分前請核對玩家姓名、回合和分數。</div>
     <div class="btns" style="margin-top:12px">
-      <button class="warn" onclick="doSubmit()">✅ 確認入分</button>
+      <button id="submit-score" class="warn" onclick="doSubmit()">✅ 確認入分</button>
       <button onclick="backToInput()">↩️ 返回改</button>
     </div>
   </div>
@@ -116,20 +121,25 @@
   <button class="ghost" style="margin-top:12px;width:100%" onclick="$('hmodal').classList.remove('show')">關閉</button>
 </div></div>
 
-<div class="status">
-  <span>站：<b id="s-st"></b>　回合：<b id="s-rd"></b></span>
-  <span class="queue" id="queue-status">待傳 0</span><button onclick="retryQueue()">重試待處理操作</button><button onclick="clearReviewedQueue()">主持人已核對：解除待處理</button>
-</div>
+<section class="delivery-panel" aria-label="入分傳送狀態">
+  <div class="delivery-heading"><strong id="queue-status" role="status" aria-live="polite">正在檢查紀錄…</strong>
+  <button onclick="retryQueue()">立即重試未確認項目</button><button onclick="exportDiagnostics()">下載入分紀錄</button></div>
+  <p>只有顯示「已確認入分」才代表伺服器已收到。未確認的項目會保留原編號重試；被拒絕的項目不會擋住其他人。</p>
+  <div id="storage-error" role="alert"></div><div id="delivery-list"></div>
+</section>
+<div class="status"><span>站：<b id="s-st"></b>　回合：<b id="s-rd"></b></span><span>入分頁 R10</span></div>
 <div class="toast" id="toast"></div>
 
+<script src="station-sync.js?v=R10"></script>
 <script>
 // ── ✏️ 只此一行：你嘅 Lambda Function URL ────────────────
 const BASE = 'https://pw3jpvywrpggt73vova47hq3la0depya.lambda-url.ap-northeast-1.on.aws';
 // ──────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
 let stationReady=false;
-const authHeaders=()=>({'Content-Type':'application/json'});
-async function staffState(){const r=await fetch(BASE+'/staff-state',{cache:'no-store',signal:AbortSignal.timeout(7000)});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.msg||'未能取得目前回合，請重試。');if(d.access!=='open')throw new Error('站長免登入版本尚未就緒，請聯絡主持人。');return d;}
+const Sync=BethesdaStationSync;
+const request=Sync.request;
+async function staffState(){const r=await request(BASE+'/staff-state');const d=r.data;if(r.status!==200||!d.ok)throw new Error(d.msg||'未能取得目前回合，請重試。');if(d.access!=='open')throw new Error('站長免登入版本尚未就緒，請聯絡主持人。');return d;}
 async function connectStation(){try{const d=await staffState();rdSel.value=d.round;stationReady=true;syncLabels();$('connection').textContent='已連線 · '+d.round+' · 毋須登入';await loadRoster();}catch(e){stationReady=false;$('connection').textContent=e.message;toast(e.message,true);}}
 const esc=s=>String(s??'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
 const stSel=$('station'),rdSel=$('round');
@@ -143,8 +153,8 @@ stSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('station',
 let ROSTER=[];
 async function loadRoster(){
   try{
-    const r=await fetch(BASE+'/roster',{cache:'no-store',headers:authHeaders(),signal:AbortSignal.timeout(7000)});
-    const data=await r.json();if(!r.ok||!Array.isArray(data))throw new Error(data.msg||'名單讀取失敗');
+    const r=await request(BASE+'/roster');
+    const data=r.data;if(r.status!==200||!Array.isArray(data))throw new Error(data.msg||'名單讀取失敗');
     ROSTER=data.filter(x=>/^P[0-9]+$/i.test(x.id));
     renderRoster();
   }catch(e){$('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">未能載入名單；請確認網絡後按「名單」重試。</div>';}
@@ -176,8 +186,8 @@ function renderRoster(list){
         ? shown.map(p=>`<div class="tile ${exact?'hit':''}" onclick="openModal('${p.id}')">
              <div class="num">${p.id.replace(/^P/,'')}</div>
              <div class="pid">${p.id}</div><div class="pname">${esc(p.name)}</div></div>`).join('')
-        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:26px">搵唔到「${esc(q)}」<br>試下淨係打號碼，例如 7</div>`)
-    : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">未有已綁定玩家。玩家綁定後撳「🔄 名單」。</div>';
+        : `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:26px">找不到「${esc(q)}」。<br>請嘗試只輸入號碼，例如 7。</div>`)
+    : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">尚未有已加入的玩家。玩家加入後，請按「名單」重新載入。</div>';
   $('qhint').textContent = q ? `${shown.length} / ${ROSTER.length} 位` : (ROSTER.length? `${ROSTER.length} 位玩家`:'');
 }
 function filterRoster(){ renderRoster(); }
@@ -225,89 +235,101 @@ function toConfirm(){
 function backToInput(){showStep('input');}
 function closeModal(){$('modal').classList.remove('show');}
 
-let submitting=false;
+let submitting=false,box=null,storageFailure='';
+function storageProblem(e){storageFailure=e.message||String(e);$('storage-error').textContent=storageFailure;toast(storageFailure,true);}
+function records(){return box?box.list():[];}
+function legacyHistory(){let text;try{text=localStorage.getItem('bethesda_hist_A1');const h=JSON.parse(text||'[]');if(!Array.isArray(h))throw Error();return h;}catch{throw new Error('舊版入分紀錄未能讀取，請下載紀錄交由主持人核對，勿清除瀏覽資料。');}}
 async function doSubmit(){
-  if(submitting)return;submitting=true;
-  const payload={operationId:crypto.randomUUID(),type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,tier:cur.coins,coins:cur.coins};
-  try{const state=await staffState();if(state.round!==payload.round)throw new Error('回合已變更，請核對回合後再入分。');payload.context=state.context;enqueue({kind:'checkin',payload});closeModal();flush();}catch(e){toast(e.message,true);return;}finally{submitting=false;}
-  clearQ();   // 清空搜尋，下一位可以即刻打號碼
+  if(submitting)return;
+  submitting=true;$('submit-score').disabled=true;$('submit-score').textContent='正在核對回合…';
+  try{
+    if(!box||storageFailure)throw new Error(storageFailure||'此裝置尚未準備好保存操作。');
+    const payload={operationId:Sync.uid(),type:'checkin',id:cur.id,round:rdSel.value,station:stSel.value,tier:cur.coins,coins:cur.coins};
+    const pending=records().find(x=>x.payload.type==='checkin'&&x.payload.id===payload.id&&x.payload.round===payload.round&&['pending','sending','retry','review'].includes(x.status));
+    if(pending)throw new Error('這位玩家已有未確認入分，請先查看下方原操作，避免重複提交。');
+    const state=await staffState();
+    if(state.round!==payload.round){rdSel.value=state.round;syncLabels();closeModal();throw new Error('回合已變更，請重新選擇玩家並核對分數。');}
+    payload.context=state.context;
+    box.add(payload);closeModal();clearQ();toast('已保存在此裝置，正在等待入分確認。');flush();
+  }catch(e){storageProblemIfNeeded(e);toast(e.message,true);}
+  finally{submitting=false;$('submit-score').disabled=false;$('submit-score').textContent='確認入分';}
 }
-
-// ── 本回合紀錄 + 取消（undo）──
-const HK='bethesda_hist_A1';
-const getH=()=>{try{return JSON.parse(localStorage.getItem(HK)||'[]')}catch{return[]}};
-const setH=h=>localStorage.setItem(HK,JSON.stringify(h));
-function addH(entry){const h=getH();h.push(entry);setH(h);}
+function storageProblemIfNeeded(e){if(/保存|損壞|紀錄未能讀取/.test(e.message))storageProblem(e);}
+function renderQ(){
+  try{
+    const list=records(),pending=list.filter(x=>['pending','sending','retry','review'].includes(x.status)),rejected=list.filter(x=>x.status==='rejected');
+    $('queue-status').textContent='未確認 '+pending.length+' 筆 · 被拒絕 '+rejected.length+' 筆';
+    const visible=list.filter(x=>!['succeeded','reviewed'].includes(x.status));
+    $('delivery-list').innerHTML=visible.map(x=>`<article class="delivery-item ${x.status==='rejected'?'rejected':''}">
+      <b>${esc(x.payload.id)} ${esc(nameOf(x.payload.id))} · ${esc(x.payload.round)} · ${x.payload.type==='undo'?'撤回':esc(x.payload.tier??x.payload.coins)+' 分'}</b>
+      <strong>${x.status==='rejected'?'系統已拒絕，這筆未執行':x.status==='sending'?'正在傳送':'結果尚未確認'}</strong>
+      <p>${esc(x.error||'等待傳送。')}</p><small>操作編號：${esc(x.key)}</small>
+      ${x.status==='rejected'&&x.payload.type==='checkin'?`<button onclick="recheckRejected('${esc(x.key)}')">核對後重新選擇分數</button>`:''}
+      <button onclick="reviewRecord('${esc(x.key)}')">主持人已核對此筆</button></article>`).join('')||'<p>目前沒有待處理項目。已成功入分的紀錄可在「本回合紀錄」查看。</p>';
+  }catch(e){storageProblem(e);}
+}
+async function flush(force=false){if(!box||storageFailure)return;try{await box.flush(force);}catch(e){storageProblem(e);}}
+async function retryQueue(){if(storageFailure){toast(storageFailure,true);return;}await flush(true);}
+function reviewRecord(key){if(!confirm('主持人已在總機核對這一筆？標記後會停止重試，原紀錄仍會保留。'))return;try{box.update(key,{status:'reviewed',reviewedAt:Date.now()});}catch(e){storageProblem(e);}}
+async function recheckRejected(key){
+  try{const x=records().find(x=>x.key===key);if(!x||x.status!=='rejected')return;
+    const state=await staffState();rdSel.value=state.round;syncLabels();
+    if(state.round!==x.payload.round){toast('原操作屬於 '+x.payload.round+'，目前是 '+state.round+'。請主持人核對舊回合分數。',true);return;}
+    await loadRoster();openModal(x.payload.id);
+  }catch(e){toast(e.message,true);}
+}
+function historyEntries(){
+  const newer=records().filter(x=>x.payload.type==='checkin'&&x.status==='succeeded').map(x=>({key:x.key,payload:x.payload,...x.response}));
+  const ids=new Set(newer.map(x=>x.payload.operationId));
+  return [...legacyHistory().filter(x=>x.solid&&!ids.has(x.payload?.operationId)).map((x,i)=>({...x,key:'old-'+i})),...newer];
+}
 function openHist(){
-  $('h-ctx').textContent=`${rdSel.value} · ${stLabel()}（這部裝置記錄的）`;
-  const h=getH().map((e,i)=>({...e,i})).filter(e=>e.payload.round===rdSel.value);
-  $('h-list').innerHTML=h.length? h.map(e=>`
-    <div class="row ${e.undone?'undone':''}">
-      <span>${e.payload.id} ${esc(nameOf(e.payload.id))}　${e.dispense||('base '+e.payload.coins)}</span>
-      ${e.reviewClosed?'<span style="color:var(--muted);font-size:12px">已由主持人核對</span>':e.undone?'<span style="color:var(--muted);font-size:12px">已取消</span>'
-        :(e.solid?`<button class="no" onclick="doUndo(${e.i})">↩️ 取消</button>`
-        :'<span style="color:var(--muted);font-size:12px">待傳/未確認</span>')}
-    </div>`).join('') : '<div style="color:var(--muted);text-align:center;padding:16px">本回合尚未有紀錄。</div>';
-  $('hmodal').classList.add('show');
+  try{
+    $('h-ctx').textContent=rdSel.value+' · '+stLabel()+'（這部裝置的紀錄）';
+    const all=records(),h=historyEntries().filter(x=>x.payload.round===rdSel.value&&x.payload.station===stSel.value);
+    $('h-list').innerHTML=h.map(x=>{
+      const undo=all.find(y=>y.payload.type==='undo'&&y.payload.receipt===x.receipt);
+      const undone=x.undone||undo?.status==='succeeded';
+      return `<div class="row ${undone?'undone':''}"><span>${esc(x.payload.id)} ${esc(nameOf(x.payload.id))} · ${esc(x.dispense||x.payload.coins)}</span>${undone?'<span>已撤回</span>':undo&&undo.status!=='rejected'?'<span>撤回待核對</span>':`<button onclick="doUndo('${esc(x.key)}')">撤回</button>`}</div>`;
+    }).join('')||'<p>此站本回合尚未有已確認紀錄。</p>';
+    $('hmodal').classList.add('show');
+  }catch(e){storageProblem(e);}
 }
 const undoBusy=new Set();
-async function doUndo(i){
-  if(undoBusy.has(i))return;
-  const h=getH(); const e=h[i]; if(!e||e.undone||e.reviewClosed)return;
-  if(e.undoPending&&!e.undoRequest){toast('舊版撤回須由主持人核對。',true);return;}
-  undoBusy.add(i);
+async function doUndo(key){
+  if(undoBusy.has(key))return;undoBusy.add(key);
   try{
-    if(!e.undoRequest){const state=await staffState();e.undoRequest={type:'undo',operationId:crypto.randomUUID(),id:e.payload.id,round:e.payload.round,station:e.payload.station,receipt:e.receipt,context:state.context};}e.undoPending=true;setH(h);
-    const r=await fetch(BASE+'/undo',{method:'POST',headers:authHeaders(),signal:AbortSignal.timeout(9000),
-      body:JSON.stringify(e.undoRequest)});
-    const res=await r.json();
-    if(res.ok){ e.undone=true; setH(h); toast(`↩️ ${e.payload.id} 已撤回，可以重新入分。`); openHist(); }
-    else {if(!res.needsReview){e.undoPending=false;setH(h);}toast(res.msg||'取消結果未確認，請通知主持人。',true);}
-  }catch{ toast('網絡問題，撤回結果未確認，請通知主持人核對，請使用重試按鈕。',true); }finally{undoBusy.delete(i);}
+    const x=historyEntries().find(x=>x.key===key);if(!x||x.undone)return;
+    const old=records().find(y=>y.payload.type==='undo'&&y.payload.receipt===x.receipt&&y.status!=='rejected');
+    if(old){await flush(true);openHist();return;}
+    const state=await staffState();
+    if(state.round!==x.payload.round)throw new Error('回合已變更，請主持人核對原入分。');
+    box.add({type:'undo',operationId:Sync.uid(),id:x.payload.id,round:x.payload.round,station:x.payload.station,receipt:x.receipt,context:state.context});
+    await flush();openHist();
+  }catch(e){storageProblemIfNeeded(e);toast(e.message,true);}finally{undoBusy.delete(key);}
 }
-
-// ── 離線佇列 + 送出（成功先入 history，帶 server 回傳嘅 solid 供 undo）──
-const QK='bethesda_queue_R82_'+(stSel.value||'unselected');
-// Each station has its own durable queue. Preserve old operation IDs during migration.
-function migrateLegacyQueue(){
-  let old;try{old=JSON.parse(localStorage.getItem('bethesda_queue_A1')||'[]');}catch{return;}
-  const valid=[...stSel.options].map(o=>o.value).filter(Boolean),left=[];
-  for(const item of old){const station=item.payload?.station;if(!valid.includes(station)){left.push(item);continue;}
-    const key='bethesda_queue_R82_'+station;let queue;try{queue=JSON.parse(localStorage.getItem(key)||'[]');}catch{left.push(item);continue;}
-    if(!queue.some(x=>x.payload?.operationId&&x.payload.operationId===item.payload.operationId))queue.push({...item,needsReview:true});
-    localStorage.setItem(key,JSON.stringify(queue));
-  }
-  localStorage.setItem('bethesda_queue_A1',JSON.stringify(left));
-  if(left.length)$('connection').textContent='尚有舊版待處理操作，請由主持人核對。';
+function exportDiagnostics(){
+  const saved={};let failure='';
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^bethesda_(station_R10|queue_|hist_)/.test(k))saved[k]=localStorage.getItem(k);}}catch(e){failure=e.message;}
+  const data={version:'R10',at:new Date().toISOString(),browser:navigator.userAgent,online:navigator.onLine,station:stSel.value,round:rdSel.value,storageError:storageFailure||failure,records:saved};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='bethesda-station-records-'+Date.now()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
-migrateLegacyQueue();
-const getQ=()=>{try{return JSON.parse(localStorage.getItem(QK)||'[]')}catch{return[]}};
-const setQ=q=>{localStorage.setItem(QK,JSON.stringify(q));renderQ();};
-function enqueue(p){const q=getQ();q.push(p);setQ(q);}
-function renderQ(){const q=getQ();$('queue-status').textContent='待處理 '+q.length+(q.some(x=>x.needsReview)?'（可用原編號重試）':'');$('queue-status').classList.toggle('on',q.length>0);}
-let flushing=false;
-async function flush(){
-  if(flushing)return;flushing=true;
+function startOutbox(){
+  if(!stSel.value)return;
   try{
-    let q=getQ();
-    while(q.length){
-      const item=q[0];if(item.needsReview)break;
-      // 先保存「可能已送出」，避免重新整理後不知情地重送。
-      item.needsReview=true;setQ(q);
-      try{
-        const r=await fetch(BASE+'/checkin',{method:'POST',headers:authHeaders(),body:JSON.stringify(item.payload),signal:AbortSignal.timeout(9000)});
-        const res=await r.json();
-        if(res.ok){addH({payload:item.payload,receipt:res.receipt,solid:res.solid,dispense:res.dispense,ts:Date.now(),undone:false});q.shift();setQ(q);toast('已入分：'+(res.dispense||'—'));}
-        else {item.error=res.msg||'結果未確認';setQ(q);toast(item.error+'；請通知主持人核對。',true);break;}
-      }catch{toast('入分結果未確認，請通知主持人核對；請以原操作編號重試。',true);break;}
-      q=getQ();
-    }
-  }finally{flushing=false;}
+    box=new Sync.Outbox({storage:localStorage,station:stSel.value,send:p=>request(BASE+(p.type==='undo'?'/undo':'/checkin'),p),changed:renderQ,notify:toast});
+    box.migrate();
+    legacyHistory().filter(x=>x.undoPending&&!x.undone&&x.undoRequest&&x.payload.station===stSel.value).forEach(x=>box.add(x.undoRequest));
+    renderQ();flush();
+  }catch(e){storageProblem(e);}
 }
-async function retryQueue(){const q=getQ();if(q.some(x=>!x.payload.operationId)){toast('舊版操作須由主持人核對。',true);return;}q.forEach(x=>x.needsReview=false);setQ(q);await flush();for(const [i,e] of getH().entries())if(e.undoPending&&!e.undone)await doUndo(i);}
-function clearReviewedQueue(){if(!confirm('主持人已核對這部裝置的所有待處理入分與撤回？解除後不會補送或撤回分數。'))return;setQ([]);const h=getH();h.forEach(e=>{if(e.undoPending){e.reviewClosed=true;}});setH(h);toast('已解除待核對項目；如需調整，請由主持人處理。');}
+window.addEventListener('online',()=>{connectStation();flush(true);});
+window.addEventListener('storage',()=>renderQ());
+setInterval(()=>{if(!document.hidden&&navigator.onLine!==false)flush();},3000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)flush();});
 let tH;function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast show'+(err?' err':'');clearTimeout(tH);tH=setTimeout(()=>t.className='toast'+(err?' err':''),2600);}
-renderQ(); connectStation();
+startOutbox(); connectStation();
 </script>
 <script>// Keep the displayed round aligned with MC; never change an open scoring form.
 let staffPolling=false;
